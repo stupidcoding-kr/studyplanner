@@ -1,0 +1,86 @@
+{
+  "ddays": [
+    {
+      "id": 1,
+      "title": "공무원 9급 필기시험",
+      "date": "2026-06-20"
+    }
+  ],
+  "categories": [
+    "기본",
+    "객관식",
+    "심화"
+  ],
+  "subjects": [
+    "행정학",
+    "세법",
+    "재무회계"
+  ],
+  "lectures": [
+    {
+      "id": 101,
+      "category": "기본",
+      "subject": "행정학",
+      "title": "행정학 입문 강의",
+      "instructor": "김행정",
+      "total": 30,
+      "current": 12,
+      "startDate": "2026-01-01",
+      "endDate": null,
+      "duration": null
+    }
+  ],
+  "tasks": {
+    "2026-09-21": [
+      {
+        "text": "행정학 입문 1강 수강",
+        "completed": true,
+        "lectureId": "101"
+      }
+    ]
+  },
+  "studyTimes": {
+    "2026-09-21": "5H 30M"
+  },
+  "reviews": [
+    {
+      "id": 201,
+      "subject": "행정학",
+      "title": "2026 행정학 기본서",
+      "thumbnail": "",
+      "chapters": [
+        {
+          "id": 1,
+          "title": "제 1 장 행정학 총론",
+          "count": 1,
+          "startDate": "2026-09-01",
+          "endDate": "2026-09-01",
+          "duration": 1,
+          "sections": [
+            {
+              "id": 101,
+              "title": "제 1 절 행정의 개념",
+              "count": 1,
+              "startDate": "2026-09-01",
+              "endDate": "2026-09-01",
+              "duration": 1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "yearlyData": {
+    "2026-01": {
+      "goals": [
+        "행정학 기본강의 완강"
+      ],
+      "items": [
+        {
+          "date": "15일",
+          "text": "중간 점검 모의고사"
+        }
+      ]
+    }
+  }
+}

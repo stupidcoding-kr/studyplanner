@@ -173,7 +173,6 @@
       color: #ffffff;
     }
 
-    /* 네모 칸 없는 심플 + 버튼 */
     .simple-text-btn {
       background: transparent;
       border: none;
@@ -774,7 +773,6 @@
       color: var(--sub-text);
     }
 
-    /* Yearly 뷰 */
     .yearly-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -1334,7 +1332,7 @@
         <input type="hidden" id="yearlyEditType" />
         <input type="hidden" id="yearlyEditMonthKey" />
         <input type="hidden" id="yearlyEditIdx" />
-        <div class="form-group">
+        <div class="form-group" id="yearlyEditDateGroup">
           <label class="form-label">날짜 / 기간</label>
           <input type="text" class="form-input" id="yearlyEditDateInput" />
         </div>
@@ -1356,8 +1354,9 @@
     let editModes = { dday: false, weekly: false, lecture: false, review: false, yearly: false, category: false };
     let selectedCategory = '', selectedSubject = '', activeSubjectFilter = '';
     let calMonthKey = '', calIsPeriodMode = false, calStartDay = null, calEndDay = null;
+    let kakaoSearchResultsData = [];
 
-    let plannerData = JSON.parse(localStorage.getItem('notion_study_planner_v10')) || {
+    let plannerData = {
       ddays: [],
       categories: ['기본', '객관식', '심화'],
       subjects: ['행정학', '세법', '재무회계'],
@@ -1380,6 +1379,28 @@
     function saveData() {
       localStorage.setItem('notion_study_planner_v10', JSON.stringify(plannerData));
       syncToNotionAuto();
+    }
+
+    async function loadData() {
+      const saved = localStorage.getItem('notion_study_planner_v10');
+      if (saved) {
+        try {
+          plannerData = JSON.parse(saved);
+        } catch (e) {
+          console.error('LocalStorage 데이터 파싱 실패:', e);
+        }
+      } else {
+        try {
+          const res = await fetch('planner_data.json');
+          if (res.ok) {
+            plannerData = await res.json();
+            saveData();
+          }
+        } catch (e) {
+          console.warn('planner_data.json 파일 로드 실패 (기본값 사용):', e);
+        }
+      }
+      render();
     }
 
     async function syncToNotionAuto() {
@@ -1460,7 +1481,7 @@
     function renderDDays() {
       const grid = document.getElementById('ddayGrid');
       grid.innerHTML = '';
-      plannerData.ddays.forEach((item, idx) => {
+      (plannerData.ddays || []).forEach((item, idx) => {
         const card = document.createElement('div');
         card.className = 'dday-card';
         const target = new Date(item.date + 'T00:00:00');
@@ -1483,7 +1504,7 @@
 
     function openDDayModal(id = null) {
       document.getElementById('editingDDayId').value = id || '';
-      const item = plannerData.ddays.find(d => d.id === id);
+      const item = plannerData.ddays.find(d => d.id == id);
       document.getElementById('ddayModalTitle').innerText = id ? 'D-Day 수정' : 'D-Day 추가';
       document.getElementById('ddayTitleInput').value = item ? item.title : '';
       document.getElementById('ddayDateInput').value = item ? item.date : '';
@@ -1582,11 +1603,12 @@
       document.getElementById('taskTargetDate').value = dateStr;
       document.getElementById('taskTargetIdx').value = idx !== null ? idx : '';
       const select = document.getElementById('taskLectureSelect');
-      select.innerHTML = '<option value="">선택 안 함</option>' + plannerData.lectures.map(l => `<option value="${l.id}">${l.subject} : ${l.title}</option>`).join('');
+      select.innerHTML = '<option value="">선택 안 함</option>' + (plannerData.lectures || []).map(l => `<option value="${l.id}">${escapeHtml(l.subject)} : ${escapeHtml(l.title)}</option>`).join('');
       const task = idx !== null ? plannerData.tasks[dateStr]?.[idx] : null;
       document.getElementById('taskModalTitle').innerText = idx !== null ? '학습 계획 수정' : '학습 계획 추가';
       document.getElementById('taskTextInput').value = task?.text || '';
       document.getElementById('taskLectureSelect').value = task?.lectureId || '';
+      document.getElementById('taskRangeInput').value = '';
       handleTaskLectureChange(); openModal('taskModal');
     }
 
@@ -1618,7 +1640,7 @@
     /* Lectures */
     function renderLectures() {
       const subjectGrid = document.getElementById('subjectGrid');
-      subjectGrid.innerHTML = plannerData.subjects.map(sub => `
+      subjectGrid.innerHTML = (plannerData.subjects || []).map(sub => `
         <div class="subject-card ${activeSubjectFilter === sub ? 'active' : ''}" onclick="activeSubjectFilter = activeSubjectFilter === '${sub}' ? '' : '${sub}'; renderLectures();">
           <div class="subject-card-title">${escapeHtml(sub)}</div>
           <div class="subject-card-actions">
@@ -1630,12 +1652,12 @@
 
       const lectureGrid = document.getElementById('lectureGrid');
       lectureGrid.innerHTML = '';
-      const filtered = activeSubjectFilter ? plannerData.lectures.filter(l => l.subject === activeSubjectFilter) : plannerData.lectures;
+      const filtered = activeSubjectFilter ? (plannerData.lectures || []).filter(l => l.subject === activeSubjectFilter) : (plannerData.lectures || []);
       const grouped = {};
       filtered.forEach(l => (grouped[l.category] = grouped[l.category] || []).push(l));
 
       Object.keys(grouped).forEach(cat => {
-        lectureGrid.innerHTML += `<div class="category-group-header">${cat}</div>`;
+        lectureGrid.innerHTML += `<div class="category-group-header">${escapeHtml(cat)}</div>`;
         grouped[cat].forEach(l => {
           const percent = Math.min(100, Math.round(((l.current || 0) / l.total) * 100));
           lectureGrid.innerHTML += `
@@ -1675,12 +1697,14 @@
       document.getElementById('editingLectureId').value = id || '';
       renderTagPills();
       if (id) {
-        const l = plannerData.lectures.find(item => item.id === id);
-        document.getElementById('lectureModalTitle').innerText = '강의 수정';
-        selectedCategory = l.category; selectedSubject = l.subject;
-        document.getElementById('lectureNameInput').value = l.title;
-        document.getElementById('lectureInstructorInput').value = l.instructor || '';
-        document.getElementById('lectureTotalInput').value = l.total;
+        const l = plannerData.lectures.find(item => item.id == id);
+        if (l) {
+          document.getElementById('lectureModalTitle').innerText = '강의 수정';
+          selectedCategory = l.category; selectedSubject = l.subject;
+          document.getElementById('lectureNameInput').value = l.title;
+          document.getElementById('lectureInstructorInput').value = l.instructor || '';
+          document.getElementById('lectureTotalInput').value = l.total;
+        }
       } else {
         document.getElementById('lectureModalTitle').innerText = '강의 등록';
         selectedCategory = plannerData.categories[0] || '기본';
@@ -1694,7 +1718,7 @@
 
     function renderTagPills() {
       const container = document.getElementById('categoryTagsContainer');
-      container.innerHTML = plannerData.categories.map(cat => `
+      container.innerHTML = (plannerData.categories || []).map(cat => `
         <div class="tag-pill ${selectedCategory === cat ? 'active' : ''}" onclick="selectedCategory='${cat}'; renderTagPills();">
           <span>${escapeHtml(cat)}</span>
           ${editModes.category ? `<button class="task-delete" onclick="event.stopPropagation(); deleteCategory('${cat}')">✕</button>` : ''}
@@ -1760,26 +1784,32 @@
           headers: { 'Authorization': `KakaoAK ${KAKAO_REST_API_KEY}` }
         });
         const data = await res.json();
-        resultsDiv.innerHTML = data.documents?.map(doc => `
-          <div class="book-search-item" onclick='selectKakaoBook(${JSON.stringify(doc).replace(/'/g, "&#39;")})'>
+        kakaoSearchResultsData = data.documents || [];
+        if (kakaoSearchResultsData.length === 0) {
+          resultsDiv.innerHTML = '검색 결과가 없습니다.';
+          return;
+        }
+        resultsDiv.innerHTML = kakaoSearchResultsData.map((doc, index) => `
+          <div class="book-search-item" onclick="selectKakaoBook(${index})">
             <div class="book-search-title">${escapeHtml(doc.title)}</div>
-            <div class="book-search-author">${escapeHtml(doc.authors?.join(', '))}</div>
+            <div class="book-search-author">${escapeHtml(Array.isArray(doc.authors) ? doc.authors.join(', ') : '')}</div>
           </div>
-        `).join('') || '검색 결과가 없습니다.';
+        `).join('');
       } catch { resultsDiv.innerHTML = '검색 실패'; }
     }
 
-    function selectKakaoBook(doc) {
+    function selectKakaoBook(index) {
+      const doc = kakaoSearchResultsData[index];
+      if (!doc) return;
       const subject = document.getElementById('kakaoTargetSubject').value;
       plannerData.reviews.push({ id: Date.now(), subject, title: doc.title, thumbnail: doc.thumbnail || '', chapters: [] });
       saveData(); closeModal('kakaoBookModal'); renderReviewSection();
     }
 
-    /* Review 섹션 - UI 개선 적용 (네모 박스 없는 + 버튼 적용 및 회독 옆 + 삭제) */
     function renderReviewSection() {
       const grid = document.getElementById('reviewGrid');
-      grid.innerHTML = plannerData.subjects.map(sub => {
-        const books = plannerData.reviews.filter(r => r.subject === sub);
+      grid.innerHTML = (plannerData.subjects || []).map(sub => {
+        const books = (plannerData.reviews || []).filter(r => r.subject === sub);
         const booksHtml = books.map(b => `
           <details class="review-book-details" open>
             <summary class="review-book-summary">
@@ -1880,9 +1910,7 @@
           sections: []
         });
       }
-      saveData();
-      closeModal('addChapterModal');
-      renderReviewSection();
+      saveData(); closeModal('addChapterModal'); renderReviewSection();
     }
 
     function openAddSectionModal(bookId, chId) {
@@ -1927,9 +1955,7 @@
           duration: null
         });
       }
-      saveData();
-      closeModal('addSectionModal');
-      renderReviewSection();
+      saveData(); closeModal('addSectionModal'); renderReviewSection();
     }
 
     function editBookTitle(bookId) {
@@ -1941,10 +1967,7 @@
       const currentTitle = book.title;
       el.outerHTML = `<input type="text" id="editBookInput_${bookId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditBookTitle(${bookId})" onkeydown="if(event.key==='Enter'){ event.preventDefault(); finishEditBookTitle(${bookId}); }" />`;
       const input = document.getElementById(`editBookInput_${bookId}`);
-      if (input) {
-        input.focus();
-        input.select();
-      }
+      if (input) { input.focus(); input.select(); }
     }
 
     function finishEditBookTitle(bookId) {
@@ -1969,10 +1992,7 @@
       const currentTitle = ch.title;
       el.outerHTML = `<input type="text" id="editChInput_${bookId}_${chId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditChapterTitle(${bookId}, ${chId})" onkeydown="if(event.key==='Enter'){ event.preventDefault(); finishEditChapterTitle(${bookId}, ${chId}); }" />`;
       const input = document.getElementById(`editChInput_${bookId}_${chId}`);
-      if (input) {
-        input.focus();
-        input.select();
-      }
+      if (input) { input.focus(); input.select(); }
     }
 
     function finishEditChapterTitle(bookId, chId) {
@@ -1999,10 +2019,7 @@
       const currentTitle = sec.title;
       el.outerHTML = `<input type="text" id="editSecInput_${bookId}_${chId}_${secId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditSectionTitle(${bookId}, ${chId}, ${secId})" onkeydown="if(event.key==='Enter'){ event.preventDefault(); finishEditSectionTitle(${bookId}, ${chId}, ${secId}); }" />`;
       const input = document.getElementById(`editSecInput_${bookId}_${chId}_${secId}`);
-      if (input) {
-        input.focus();
-        input.select();
-      }
+      if (input) { input.focus(); input.select(); }
     }
 
     function finishEditSectionTitle(bookId, chId, secId) {
@@ -2114,7 +2131,7 @@
     function openYearlyGoalModal(mKey) {
       document.getElementById('yearlyGoalMonthKey').value = mKey;
       const select = document.getElementById('yearlyGoalLectureSelect');
-      select.innerHTML = '<option value="">직접 입력</option>' + plannerData.lectures.map(l => `<option value="${escapeHtml(l.title)}">${escapeHtml(l.subject)} - ${escapeHtml(l.title)}</option>`).join('');
+      select.innerHTML = '<option value="">직접 입력</option>' + (plannerData.lectures || []).map(l => `<option value="${escapeHtml(l.title)}">${escapeHtml(l.subject)} - ${escapeHtml(l.title)}</option>`).join('');
       document.getElementById('yearlyGoalTextInput').value = '';
       openModal('yearlyGoalModal');
     }
@@ -2201,6 +2218,12 @@
       document.getElementById('yearlyEditIdx').value = idx !== null ? idx : '';
       document.getElementById('yearlyEditDateInput').value = date;
       document.getElementById('yearlyEditTextInput').value = text;
+      
+      const dateGroup = document.getElementById('yearlyEditDateGroup');
+      if (dateGroup) {
+        dateGroup.style.display = (type === 'editGoal') ? 'none' : 'block';
+      }
+
       openModal('yearlyEditModal');
     }
 
@@ -2224,23 +2247,8 @@
       saveData(); closeModal('yearlyEditModal'); renderYearlyView();
     }
 
-    async function initNotionData() {
-      try {
-        const res = await fetch('/api/notion');
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.results) {
-            console.log('노션 DB 동기화 완료');
-          }
-        }
-      } catch (err) {
-        console.warn('노션 자동 동기화 연결 상태 확인 필요:', err);
-      }
-    }
-
     window.onload = () => {
-      render();
-      initNotionData();
+      loadData();
     };
   </script>
 </body>
