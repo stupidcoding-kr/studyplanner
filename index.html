@@ -1534,18 +1534,7 @@
         ...Object.keys(plannerData.studyTimes || {})
       ]));
 
-      // 인강 진도율 리스트 생성 (이미지 양식 반영)
-      const lectureProgressList = (plannerData.lectures || [])
-        .filter(l => l && l.subject)
-        .map(l => {
-          const percent = Math.min(100, Math.round(((l.current || 0) / l.total) * 100));
-          const statusStr = percent >= 100 ? '완강' : '진행 중';
-          const startDateStr = l.startDate || getTodayStr();
-          const instructorStr = l.instructor ? ` (${l.instructor})` : '';
-          return `- ${l.title}${instructorStr}\n  진행률: ${l.current || 0}/${l.total}강 (${percent}%) · ${statusStr} (시작일: ${startDateStr})`;
-        });
-
-      // 회독 현황 리스트 생성 (이미지 양식 반영)
+      // 회독 현황 리스트 생성
       const reviewSummaryList = [];
       (plannerData.reviews || []).forEach(b => {
         let maxCount = 0;
@@ -1555,7 +1544,7 @@
             if ((sec.count || 0) > maxCount) maxCount = sec.count;
           });
         });
-        reviewSummaryList.push(`- ${b.title} [${b.subject}]: ${maxCount}회독`);
+        reviewSummaryList.push(`- ${b.title} [${b.subject}]:${maxCount}회독`);
       });
 
       for (const dateKey of datesToSync) {
@@ -1569,34 +1558,14 @@
           continue;
         }
 
-        const completedTasksCount = dayTasks.filter(t => t.completed).length;
-        const totalTasksCount = dayTasks.length;
-        const achievementRate = totalTasksCount > 0 ? Math.round((completedTasksCount / totalTasksCount) * 100) : 0;
-
-        const taskLines = dayTasks.length > 0
-          ? dayTasks.map(t => `${t.completed ? '✅' : '⬜'} ${t.text}`).join('\n')
-          : '등록된 학습 계획 없음';
-
-        const lectureLines = lectureProgressList.length > 0
-          ? lectureProgressList.join('\n')
-          : '진행 중인 인강 없음';
-
         const reviewLines = reviewSummaryList.length > 0
           ? reviewSummaryList.join('\n')
           : '등록된 회독 정보 없음';
 
-        // 첨부 이미지와 정확히 동일한 서식의 리포트 텍스트 생성
+        // 캡처 이미지에 포함된 내용(당일 학습 플랜, 인강 수강 현황, 달성률)은 노션 DB 페이지 본문에서 삭제
         const reportText = [
           `📅 날짜: ${dateKey}`,
           `⏱ 총 순공시간: ${dayStudyTime}`,
-          ``,
-          `플랜 달성률: ${achievementRate}%`,
-          ``,
-          `[ 오늘의 학습 계획 현황 ]`,
-          taskLines,
-          ``,
-          `[ 인강 진도율 현황 ]`,
-          lectureLines,
           ``,
           `[ 회독 현황 ]`,
           reviewLines
@@ -1605,8 +1574,8 @@
         const dailySummary = {
           date: dateKey,
           studyTime: dayStudyTime,
-          tasks: dayTasks,
-          lectureProgress: lectureProgressList,
+          tasks: [],
+          lectureProgress: [],
           reviewSummary: reviewSummaryList,
           reportText: reportText
         };
