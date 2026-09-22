@@ -1355,7 +1355,7 @@
     let selectedCategory = '', selectedSubject = '', activeSubjectFilter = '';
     let calMonthKey = '', calIsPeriodMode = false, calStartDay = null, calEndDay = null;
     let kakaoSearchResultsData = [];
-    let syncTimer = null; // 디바운스 타이머 변수
+    let syncTimer = null; // 디바운스 타이머
 
     let plannerData = {
       ddays: [],
@@ -1377,7 +1377,7 @@
       return new Date().toISOString().split('T')[0];
     }
 
-    // '행정학' 및 무효 데이터 완전 정제 함수
+    // 데이터 정제 함수
     function sanitizePlannerData() {
       if (!plannerData) return;
 
@@ -1420,99 +1420,164 @@
       }
     }
 
-    // 디바운스를 포함한 저장 및 동기화 함수
-    function saveData() {
-      sanitizePlannerData();
-      localStorage.setItem('notion_study_planner_v10', JSON.stringify(plannerData));
-      debouncedSyncToNotionAuto('upsert', null, 1000);
-    }
-
-    // 디바운스 처리 헬퍼 함수 (1초 지연)
-    function debouncedSyncToNotionAuto(action = 'upsert', targetInfo = null, delay = 1000) {
-      if (syncTimer) clearTimeout(syncTimer);
-      syncTimer = setTimeout(() => {
-        syncToNotionAuto(action, targetInfo);
-      }, delay);
-    }
-
+    // 데이터 로드 및 노션 양방향 동기화
     async function loadData() {
       const saved = localStorage.getItem('notion_study_planner_v10');
       if (saved) {
         try {
           plannerData = JSON.parse(saved);
         } catch (e) {
-          console.error('LocalStorage 데이터 파싱 실패:', e);
-        }
-      } else {
-        try {
-          const res = await fetch('planner_data.json');
-          if (res.ok) {
-            plannerData = await res.json();
-          }
-        } catch (e) {
-          console.warn('planner_data.json 파일 로드 실패 (기본값 사용):', e);
+          console.error('LocalStorage 파싱 실패:', e);
         }
       }
+
+      await fetchFromNotion();
       sanitizePlannerData();
-      saveData();
+      saveDataLocal();
       render();
     }
 
+    function saveDataLocal() {
+      sanitizePlannerData();
+      localStorage.setItem('notion_study_planner_v10', JSON.stringify(plannerData));
+    }
+
+    function saveData() {
+      saveDataLocal();
+      debouncedSyncToNotionAuto('upsert', null, 2000); // 2초 후 최종 리포트 단일 전송
+    }
+
+    function debouncedSyncToNotionAuto(action = 'upsert', targetInfo = null, delay = 2000) {
+      if (syncTimer) clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        syncToNotionAuto(action, targetInfo);
+      }, delay);
+    }
+
+    // 노션 DB 양방향 불러오기 및 삭제된 날짜 반영 로직
+    async function fetchFromNotion() {
+      try {
+        const res = await fetch('/api/notion?action=get', { method: 'GET' });
+        if (res.ok) {
+          const result = await res.json();
+          if (result) {
+            if (result.plannerData) {
+              // 노션의 최신 데이터 상태로 업데이트
+              const notionTasks = result.plannerData.tasks || {};
+              const notionStudyTimes = result.plannerData.studyTimes || {};
+
+              // 노션에서 삭제된 날짜 감지 및 인강 진도율 원복 처리
+              if (plannerData.tasks) {
+                Object.keys(plannerData.tasks).forEach(dateKey => {
+                  if (!notionTasks[dateKey]) {
+                    // 삭제된 날짜의 완료된 task 진도율 차감 원복
+                    const deletedTasks = plannerData.tasks[dateKey] || [];
+                    deletedTasks.forEach(task => {
+                      if (task.completed && task.lectureId) {
+                        const lec = plannerData.lectures.find(l => l.id == task.lectureId);
+                        if (lec) {
+                          lec.current = Math.max(0, (lec.current || 0) - 1);
+                        }
+                      }
+                    });
+                    delete plannerData.tasks[dateKey];
+                    if (plannerData.studyTimes) delete plannerData.studyTimes[dateKey];
+                  }
+                });
+              }
+
+              // 노션에서 갱신된 학습 데이터 병합
+              plannerData.tasks = notionTasks;
+              plannerData.studyTimes = notionStudyTimes;
+              if (result.plannerData.lectures) {
+                plannerData.lectures = result.plannerData.lectures;
+              }
+              if (result.plannerData.reviews) {
+                plannerData.reviews = result.plannerData.reviews;
+              }
+              if (result.plannerData.ddays) {
+                plannerData.ddays = result.plannerData.ddays;
+              }
+              if (result.plannerData.yearlyData) {
+                plannerData.yearlyData = result.plannerData.yearlyData;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('노션 양방향 불러오기 실패 (로컬 상태 유지):', err);
+      }
+    }
+
+    // 하루 학습 최종 종합 리포트 1개 전송 함수
     async function syncToNotionAuto(action = 'upsert', targetInfo = null) {
       sanitizePlannerData();
       const todayStr = getTodayStr();
 
-      // 하루치 최종 종합 요약 데이터 정제 (각 위젯 영역마다 최종본 1개/통합 단일 형태로 정리)
-      const todayTasks = plannerData.tasks[todayStr] || [];
-      const todayStudyTime = plannerData.studyTimes?.[todayStr] || '';
-      
+      // 1. 당일 학습 플랜 완료 현황
+      const todayTasks = (plannerData.tasks[todayStr] || []).map(t => ({
+        text: t.text,
+        completed: t.completed
+      }));
+
+      // 2. 당일 순공 시간
+      const todayStudyTime = plannerData.studyTimes?.[todayStr] || '0H 0M';
+
+      // 3. 인강 진도율 요약
       const lectureProgressList = (plannerData.lectures || [])
-        .filter(l => l && l.subject && !l.subject.includes('행정학'))
+        .filter(l => l && l.subject)
         .map(l => {
           const percent = Math.min(100, Math.round(((l.current || 0) / l.total) * 100));
-          return `[${l.subject}] ${l.title} : ${l.current || 0}/${l.total}강 (${percent}%)`;
+          return `[${l.subject}] ${l.title} - ${l.current || 0}/${l.total}강 (${percent}%)`;
         });
 
+      // 4. 회독 요약
       const reviewSummaryList = [];
-      (plannerData.reviews || [])
-        .filter(b => b && b.subject && !b.subject.includes('행정학'))
-        .forEach(b => {
-          let maxCount = 0;
-          (b.chapters || []).forEach(ch => {
-            if ((ch.count || 0) > maxCount) maxCount = ch.count;
-            (ch.sections || []).forEach(sec => {
-              if ((sec.count || 0) > maxCount) maxCount = sec.count;
-            });
+      (plannerData.reviews || []).forEach(b => {
+        let maxCount = 0;
+        (b.chapters || []).forEach(ch => {
+          if ((ch.count || 0) > maxCount) maxCount = ch.count;
+          (ch.sections || []).forEach(sec => {
+            if ((sec.count || 0) > maxCount) maxCount = sec.count;
           });
-          // 세부 장/절 개별 항목 누적 출력 대신 교재당 최종 회독수 1줄로만 요약 정리
-          reviewSummaryList.push(`[${b.subject}] ${b.title} : ${maxCount}회독`);
         });
+        reviewSummaryList.push(`[${b.subject}] ${b.title} : ${maxCount}회독`);
+      });
+
+      // 최종 종합 리포트 텍스트 구성
+      const reportText = [
+        `📅 날짜: ${todayStr}`,
+        `⏱ 총 순공시간: ${todayStudyTime}`,
+        `\n[ 오늘의 학습 계획 완료 현황 ]`,
+        ...(todayTasks.length ? todayTasks.map(t => `${t.completed ? '✅' : '❌'} ${t.text}`) : ['등록된 학습 계획 없음']),
+        `\n[ 인강 진도율 현황 ]`,
+        ...(lectureProgressList.length ? lectureProgressList : ['진행 중인 인강 없음']),
+        `\n[ 회독 현황 ]`,
+        ...(reviewSummaryList.length ? reviewSummaryList : ['등록된 회독 정보 없음'])
+      ].join('\n');
 
       const dailySummary = {
         date: todayStr,
         studyTime: todayStudyTime,
         tasks: todayTasks,
         lectureProgress: lectureProgressList,
-        reviewSummary: reviewSummaryList
+        reviewSummary: reviewSummaryList,
+        reportText: reportText
       };
 
       try {
-        const res = await fetch('/api/notion', {
+        await fetch('/api/notion', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: action,
             date: todayStr,
             summary: dailySummary,
-            targetInfo: targetInfo,
             plannerData: plannerData
           })
         });
-        if (!res.ok) {
-          console.warn('노션 API 호출 응답 실패:', res.status);
-        }
       } catch (err) {
-        console.warn('노션 동기화 네트워크 오류:', err);
+        console.warn('노션 자동 동기화 네트워크 오류:', err);
       }
     }
 
@@ -1649,7 +1714,7 @@
         const studyTimeVal = plannerData.studyTimes?.[info.dateStr] || '';
         let tasksHtml = tasks.map((t, idx) => `
           <div class="task-chip ${t.completed ? 'completed' : ''}">
-            <input type="checkbox" class="task-checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTaskComplete('${info.dateStr}', ${idx})" />
+            <input type="checkbox" class="task-checkbox" ${t.completed ? 'checked' : ''} onchange="toggleTaskComplete(event, '${info.dateStr}', ${idx})" />
             <span class="task-text" onclick="openTaskModal('${info.dateStr}', ${idx})">${escapeHtml(t.text)}</span>
             ${editModes.weekly ? `<button class="task-delete" onclick="deleteTask('${info.dateStr}',${idx})">✕</button>` : ''}
           </div>
@@ -1691,7 +1756,9 @@
       saveData(); renderWeeklyView();
     }
 
-    function toggleTaskComplete(dateStr, idx) {
+    // 인강 진도율 1개 정확히 제어 및 이벤트 이중 트리거 방지
+    function toggleTaskComplete(e, dateStr, idx) {
+      if (e) e.stopPropagation();
       const task = plannerData.tasks[dateStr]?.[idx];
       if (!task) return;
 
@@ -1701,9 +1768,9 @@
         const lec = plannerData.lectures.find(l => l.id == task.lectureId);
         if (lec) {
           if (task.completed) {
-            lec.current = Math.min(lec.total, (lec.current || 0) + 1);
+            lec.current = Math.min(lec.total, (Number(lec.current) || 0) + 1);
           } else {
-            lec.current = Math.max(0, (lec.current || 0) - 1);
+            lec.current = Math.max(0, (Number(lec.current) || 0) - 1);
           }
         }
       }
@@ -1717,7 +1784,7 @@
       if (task && task.completed && task.lectureId) {
         const lec = plannerData.lectures.find(l => l.id == task.lectureId);
         if (lec) {
-          lec.current = Math.max(0, (lec.current || 0) - 1);
+          lec.current = Math.max(0, (Number(lec.current) || 0) - 1);
         }
       }
       plannerData.tasks[dateStr].splice(idx, 1);
