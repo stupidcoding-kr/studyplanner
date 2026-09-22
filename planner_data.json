@@ -12,7 +12,6 @@
     "심화"
   ],
   "subjects": [
-    "행정학",
     "세법",
     "재무회계"
   ],
@@ -20,9 +19,9 @@
     {
       "id": 101,
       "category": "기본",
-      "subject": "행정학",
-      "title": "행정학 입문 강의",
-      "instructor": "김행정",
+      "subject": "세법",
+      "title": "세법개론 기본강의",
+      "instructor": "김세법",
       "total": 30,
       "current": 12,
       "startDate": "2026-01-01",
@@ -33,7 +32,7 @@
   "tasks": {
     "2026-09-21": [
       {
-        "text": "행정학 입문 1강 수강",
+        "text": "세법개론 기본강의 1강 수강",
         "completed": true,
         "lectureId": "101"
       }
@@ -45,13 +44,13 @@
   "reviews": [
     {
       "id": 201,
-      "subject": "행정학",
-      "title": "2026 행정학 기본서",
+      "subject": "세법",
+      "title": "2026 세법 기본서",
       "thumbnail": "",
       "chapters": [
         {
           "id": 1,
-          "title": "제 1 장 행정학 총론",
+          "title": "제 1 장 국세기본법",
           "count": 1,
           "startDate": "2026-09-01",
           "endDate": "2026-09-01",
@@ -59,7 +58,7 @@
           "sections": [
             {
               "id": 101,
-              "title": "제 1 절 행정의 개념",
+              "title": "제 1 절 조세의 개념",
               "count": 1,
               "startDate": "2026-09-01",
               "endDate": "2026-09-01",
@@ -73,7 +72,7 @@
   "yearlyData": {
     "2026-01": {
       "goals": [
-        "행정학 기본강의 완강"
+        "세법 기본강의 완강"
       ],
       "items": [
         {
