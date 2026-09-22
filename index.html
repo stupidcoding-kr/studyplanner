@@ -1355,7 +1355,7 @@
     let selectedCategory = '', selectedSubject = '', activeSubjectFilter = '';
     let calMonthKey = '', calIsPeriodMode = false, calStartDay = null, calEndDay = null;
     let kakaoSearchResultsData = [];
-    let syncTimer = null; // 디바운스 타이머
+    let syncTimer = null;
 
     let plannerData = {
       ddays: [],
@@ -1377,7 +1377,6 @@
       return new Date().toISOString().split('T')[0];
     }
 
-    // 데이터 정제 함수
     function sanitizePlannerData() {
       if (!plannerData) return;
 
@@ -1420,7 +1419,37 @@
       }
     }
 
-    // 데이터 로드 및 노션 양방향 동기화
+    // 인강 진도율 100% 정밀 실시간 자동 재계산 함수
+    function recalculateLectureProgress() {
+      if (!plannerData.lectures || !plannerData.tasks) return;
+
+      const completedCounts = {};
+      const totalTaskCounts = {};
+
+      Object.values(plannerData.tasks).forEach(taskList => {
+        if (Array.isArray(taskList)) {
+          taskList.forEach(t => {
+            if (t && t.lectureId) {
+              const idStr = String(t.lectureId);
+              totalTaskCounts[idStr] = (totalTaskCounts[idStr] || 0) + 1;
+              if (t.completed) {
+                completedCounts[idStr] = (completedCounts[idStr] || 0) + 1;
+              }
+            }
+          });
+        }
+      });
+
+      plannerData.lectures.forEach(lec => {
+        if (lec && lec.id) {
+          const idStr = String(lec.id);
+          if (totalTaskCounts[idStr] !== undefined) {
+            lec.current = Math.min(lec.total, completedCounts[idStr] || 0);
+          }
+        }
+      });
+    }
+
     async function loadData() {
       const saved = localStorage.getItem('notion_study_planner_v10');
       if (saved) {
@@ -1433,18 +1462,20 @@
 
       await fetchFromNotion();
       sanitizePlannerData();
+      recalculateLectureProgress();
       saveDataLocal();
       render();
     }
 
     function saveDataLocal() {
       sanitizePlannerData();
+      recalculateLectureProgress();
       localStorage.setItem('notion_study_planner_v10', JSON.stringify(plannerData));
     }
 
     function saveData() {
       saveDataLocal();
-      debouncedSyncToNotionAuto('upsert', null, 2000); // 2초 후 최종 리포트 단일 전송
+      debouncedSyncToNotionAuto('upsert', null, 2000);
     }
 
     function debouncedSyncToNotionAuto(action = 'upsert', targetInfo = null, delay = 2000) {
@@ -1454,76 +1485,61 @@
       }, delay);
     }
 
-    // 노션 DB 양방향 불러오기 및 삭제된 날짜 반영 로직
+    // 노션 안전 병합 불러오기 (로컬 데이터 유실 방지)
     async function fetchFromNotion() {
       try {
         const res = await fetch('/api/notion?action=get', { method: 'GET' });
         if (res.ok) {
           const result = await res.json();
-          if (result) {
-            if (result.plannerData) {
-              // 노션의 최신 데이터 상태로 업데이트
-              const notionTasks = result.plannerData.tasks || {};
-              const notionStudyTimes = result.plannerData.studyTimes || {};
+          if (result && result.plannerData) {
+            const notionTasks = result.plannerData.tasks || {};
+            const notionStudyTimes = result.plannerData.studyTimes || {};
 
-              // 노션에서 삭제된 날짜 감지 및 인강 진도율 원복 처리
-              if (plannerData.tasks) {
-                Object.keys(plannerData.tasks).forEach(dateKey => {
-                  if (!notionTasks[dateKey]) {
-                    // 삭제된 날짜의 완료된 task 진도율 차감 원복
-                    const deletedTasks = plannerData.tasks[dateKey] || [];
-                    deletedTasks.forEach(task => {
-                      if (task.completed && task.lectureId) {
-                        const lec = plannerData.lectures.find(l => l.id == task.lectureId);
-                        if (lec) {
-                          lec.current = Math.max(0, (lec.current || 0) - 1);
-                        }
-                      }
-                    });
-                    delete plannerData.tasks[dateKey];
-                    if (plannerData.studyTimes) delete plannerData.studyTimes[dateKey];
-                  }
-                });
-              }
+            // 로컬에만 있는 날짜가 지워지지 않도록 정밀 병합
+            plannerData.tasks = { ...plannerData.tasks, ...notionTasks };
+            plannerData.studyTimes = { ...plannerData.studyTimes, ...notionStudyTimes };
 
-              // 노션에서 갱신된 학습 데이터 병합
-              plannerData.tasks = notionTasks;
-              plannerData.studyTimes = notionStudyTimes;
-              if (result.plannerData.lectures) {
-                plannerData.lectures = result.plannerData.lectures;
-              }
-              if (result.plannerData.reviews) {
+            if (result.plannerData.lectures && Array.isArray(result.plannerData.lectures)) {
+              result.plannerData.lectures.forEach(nLec => {
+                const localLec = (plannerData.lectures || []).find(l => l.id == nLec.id);
+                if (!localLec) {
+                  plannerData.lectures.push(nLec);
+                }
+              });
+            }
+            if (result.plannerData.reviews && Array.isArray(result.plannerData.reviews)) {
+              if (!plannerData.reviews || plannerData.reviews.length === 0) {
                 plannerData.reviews = result.plannerData.reviews;
               }
-              if (result.plannerData.ddays) {
+            }
+            if (result.plannerData.ddays && Array.isArray(result.plannerData.ddays)) {
+              if (!plannerData.ddays || plannerData.ddays.length === 0) {
                 plannerData.ddays = result.plannerData.ddays;
               }
-              if (result.plannerData.yearlyData) {
-                plannerData.yearlyData = result.plannerData.yearlyData;
-              }
+            }
+            if (result.plannerData.yearlyData && typeof result.plannerData.yearlyData === 'object') {
+              plannerData.yearlyData = { ...plannerData.yearlyData, ...result.plannerData.yearlyData };
             }
           }
         }
       } catch (err) {
         console.warn('노션 양방향 불러오기 실패 (로컬 상태 유지):', err);
       }
+
+      recalculateLectureProgress();
     }
 
-    // 하루 학습 최종 종합 리포트 1개 전송 함수
+    // 날짜별 노션 DB 개별 페이지 자동 생성 및 전송
     async function syncToNotionAuto(action = 'upsert', targetInfo = null) {
       sanitizePlannerData();
-      const todayStr = getTodayStr();
+      recalculateLectureProgress();
 
-      // 1. 당일 학습 플랜 완료 현황
-      const todayTasks = (plannerData.tasks[todayStr] || []).map(t => ({
-        text: t.text,
-        completed: t.completed
-      }));
+      const datesToSync = Array.from(new Set([
+        getTodayStr(),
+        ...Object.keys(plannerData.tasks || {}),
+        ...Object.keys(plannerData.studyTimes || {})
+      ]));
 
-      // 2. 당일 순공 시간
-      const todayStudyTime = plannerData.studyTimes?.[todayStr] || '0H 0M';
-
-      // 3. 인강 진도율 요약
       const lectureProgressList = (plannerData.lectures || [])
         .filter(l => l && l.subject)
         .map(l => {
@@ -1531,7 +1547,6 @@
           return `[${l.subject}] ${l.title} - ${l.current || 0}/${l.total}강 (${percent}%)`;
         });
 
-      // 4. 회독 요약
       const reviewSummaryList = [];
       (plannerData.reviews || []).forEach(b => {
         let maxCount = 0;
@@ -1544,40 +1559,51 @@
         reviewSummaryList.push(`[${b.subject}] ${b.title} : ${maxCount}회독`);
       });
 
-      // 최종 종합 리포트 텍스트 구성
-      const reportText = [
-        `📅 날짜: ${todayStr}`,
-        `⏱ 총 순공시간: ${todayStudyTime}`,
-        `\n[ 오늘의 학습 계획 완료 현황 ]`,
-        ...(todayTasks.length ? todayTasks.map(t => `${t.completed ? '✅' : '❌'} ${t.text}`) : ['등록된 학습 계획 없음']),
-        `\n[ 인강 진도율 현황 ]`,
-        ...(lectureProgressList.length ? lectureProgressList : ['진행 중인 인강 없음']),
-        `\n[ 회독 현황 ]`,
-        ...(reviewSummaryList.length ? reviewSummaryList : ['등록된 회독 정보 없음'])
-      ].join('\n');
+      for (const dateKey of datesToSync) {
+        const dayTasks = (plannerData.tasks[dateKey] || []).map(t => ({
+          text: t.text,
+          completed: t.completed
+        }));
+        const dayStudyTime = plannerData.studyTimes?.[dateKey] || '0H 0M';
 
-      const dailySummary = {
-        date: todayStr,
-        studyTime: todayStudyTime,
-        tasks: todayTasks,
-        lectureProgress: lectureProgressList,
-        reviewSummary: reviewSummaryList,
-        reportText: reportText
-      };
+        if (dayTasks.length === 0 && (!plannerData.studyTimes?.[dateKey]) && dateKey !== getTodayStr()) {
+          continue;
+        }
 
-      try {
-        await fetch('/api/notion', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: action,
-            date: todayStr,
-            summary: dailySummary,
-            plannerData: plannerData
-          })
-        });
-      } catch (err) {
-        console.warn('노션 자동 동기화 네트워크 오류:', err);
+        const reportText = [
+          `📅 날짜: ${dateKey}`,
+          `⏱ 총 순공시간: ${dayStudyTime}`,
+          `\n[ 오늘의 학습 계획 완료 현황 ]`,
+          ...(dayTasks.length ? dayTasks.map(t => `${t.completed ? '✅' : '❌'} ${t.text}`) : ['등록된 학습 계획 없음']),
+          `\n[ 인강 진도율 현황 ]`,
+          ...(lectureProgressList.length ? lectureProgressList : ['진행 중인 인강 없음']),
+          `\n[ 회독 현황 ]`,
+          ...(reviewSummaryList.length ? reviewSummaryList : ['등록된 회독 정보 없음'])
+        ].join('\n');
+
+        const dailySummary = {
+          date: dateKey,
+          studyTime: dayStudyTime,
+          tasks: dayTasks,
+          lectureProgress: lectureProgressList,
+          reviewSummary: reviewSummaryList,
+          reportText: reportText
+        };
+
+        try {
+          await fetch('/api/notion', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: action,
+              date: dateKey,
+              summary: dailySummary,
+              plannerData: plannerData
+            })
+          });
+        } catch (err) {
+          console.warn(`노션 자동 동기화 네트워크 오류 (${dateKey}):`, err);
+        }
       }
     }
 
@@ -1633,6 +1659,7 @@
 
     function render() {
       sanitizePlannerData();
+      recalculateLectureProgress();
       renderDDays();
       renderWeeklyView();
       renderLectures();
@@ -1756,7 +1783,6 @@
       saveData(); renderWeeklyView();
     }
 
-    // 인강 진도율 1개 정확히 제어 및 이벤트 이중 트리거 방지
     function toggleTaskComplete(e, dateStr, idx) {
       if (e) e.stopPropagation();
       const task = plannerData.tasks[dateStr]?.[idx];
@@ -1764,30 +1790,16 @@
 
       task.completed = !task.completed;
 
-      if (task.lectureId) {
-        const lec = plannerData.lectures.find(l => l.id == task.lectureId);
-        if (lec) {
-          if (task.completed) {
-            lec.current = Math.min(lec.total, (Number(lec.current) || 0) + 1);
-          } else {
-            lec.current = Math.max(0, (Number(lec.current) || 0) - 1);
-          }
-        }
-      }
-
+      recalculateLectureProgress();
       saveData(); 
       render();
     }
 
     function deleteTask(dateStr, idx) {
-      const task = plannerData.tasks[dateStr]?.[idx];
-      if (task && task.completed && task.lectureId) {
-        const lec = plannerData.lectures.find(l => l.id == task.lectureId);
-        if (lec) {
-          lec.current = Math.max(0, (Number(lec.current) || 0) - 1);
-        }
+      if (plannerData.tasks[dateStr]) {
+        plannerData.tasks[dateStr].splice(idx, 1);
       }
-      plannerData.tasks[dateStr].splice(idx, 1);
+      recalculateLectureProgress();
       saveData();
       render();
     }
@@ -1881,6 +1893,7 @@
         }
       }
 
+      recalculateLectureProgress();
       saveData();
       closeModal('taskModal');
       render();
