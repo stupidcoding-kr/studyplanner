@@ -1419,7 +1419,6 @@
       }
     }
 
-    // 인강 진도율 100% 정밀 실시간 자동 재계산 함수
     function recalculateLectureProgress() {
       if (!plannerData.lectures || !plannerData.tasks) return;
 
@@ -1485,7 +1484,6 @@
       }, delay);
     }
 
-    // 노션 안전 병합 불러오기 (로컬 데이터 유실 방지)
     async function fetchFromNotion() {
       try {
         const res = await fetch('/api/notion?action=get', { method: 'GET' });
@@ -1495,7 +1493,6 @@
             const notionTasks = result.plannerData.tasks || {};
             const notionStudyTimes = result.plannerData.studyTimes || {};
 
-            // 로컬에만 있는 날짜가 지워지지 않도록 정밀 병합
             plannerData.tasks = { ...plannerData.tasks, ...notionTasks };
             plannerData.studyTimes = { ...plannerData.studyTimes, ...notionStudyTimes };
 
@@ -1523,13 +1520,12 @@
           }
         }
       } catch (err) {
-        console.warn('노션 양방향 불러오기 실패 (로컬 상태 유지):', err);
+        console.warn('노션 동기화 네트워크 오류 (로컬 유지):', err);
       }
 
       recalculateLectureProgress();
     }
 
-    // 날짜별 노션 DB 개별 페이지 자동 생성 및 전송
     async function syncToNotionAuto(action = 'upsert', targetInfo = null) {
       sanitizePlannerData();
       recalculateLectureProgress();
@@ -1602,7 +1598,7 @@
             })
           });
         } catch (err) {
-          console.warn(`노션 자동 동기화 네트워크 오류 (${dateKey}):`, err);
+          console.warn(`노션 자동 동기화 실패 (${dateKey}):`, err);
         }
       }
     }
@@ -2231,18 +2227,18 @@
       if (!book) return;
 
       const currentTitle = book.title;
-      el.outerHTML = `<input type="text" id="editBookInput_${bookId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditBookTitle(${bookId})" onkeydown="if(event.key==='Enter'){ event.preventDefault(); finishEditBookTitle(${bookId}); }" />`;
+      el.outerHTML = `<input type="text" id="editBookInput_${bookId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditBookTitle(${bookId})" onkeydown="if(event.key==='Enter') finishEditBookTitle(${bookId})" />`;
       const input = document.getElementById(`editBookInput_${bookId}`);
-      if (input) { input.focus(); input.select(); }
+      input?.focus(); input?.select();
     }
 
     function finishEditBookTitle(bookId) {
       const input = document.getElementById(`editBookInput_${bookId}`);
       if (!input) return;
-      const newTitle = input.value.trim();
+      const val = input.value.trim();
       const book = plannerData.reviews.find(b => b.id === bookId);
-      if (book && newTitle) {
-        book.title = newTitle;
+      if (book && val) {
+        book.title = val;
         saveData();
       }
       renderReviewSection();
@@ -2256,19 +2252,19 @@
       if (!ch) return;
 
       const currentTitle = ch.title;
-      el.outerHTML = `<input type="text" id="editChInput_${bookId}_${chId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditChapterTitle(${bookId}, ${chId})" onkeydown="if(event.key==='Enter'){ event.preventDefault(); finishEditChapterTitle(${bookId}, ${chId}); }" />`;
+      el.outerHTML = `<input type="text" id="editChInput_${bookId}_${chId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditChapterTitle(${bookId}, ${chId})" onkeydown="if(event.key==='Enter') finishEditChapterTitle(${bookId}, ${chId})" />`;
       const input = document.getElementById(`editChInput_${bookId}_${chId}`);
-      if (input) { input.focus(); input.select(); }
+      input?.focus(); input?.select();
     }
 
     function finishEditChapterTitle(bookId, chId) {
       const input = document.getElementById(`editChInput_${bookId}_${chId}`);
       if (!input) return;
-      const newTitle = input.value.trim();
+      const val = input.value.trim();
       const book = plannerData.reviews.find(b => b.id === bookId);
       const ch = book?.chapters.find(c => c.id === chId);
-      if (ch && newTitle) {
-        ch.title = newTitle;
+      if (ch && val) {
+        ch.title = val;
         saveData();
       }
       renderReviewSection();
@@ -2283,20 +2279,20 @@
       if (!sec) return;
 
       const currentTitle = sec.title;
-      el.outerHTML = `<input type="text" id="editSecInput_${bookId}_${chId}_${secId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditSectionTitle(${bookId}, ${chId}, ${secId})" onkeydown="if(event.key==='Enter'){ event.preventDefault(); finishEditSectionTitle(${bookId}, ${chId}, ${secId}); }" />`;
+      el.outerHTML = `<input type="text" id="editSecInput_${bookId}_${chId}_${secId}" class="inline-title-input" value="${escapeHtml(currentTitle)}" onclick="event.stopPropagation();" ondblclick="event.stopPropagation();" onblur="finishEditSectionTitle(${bookId}, ${chId}, ${secId})" onkeydown="if(event.key==='Enter') finishEditSectionTitle(${bookId}, ${chId}, ${secId})" />`;
       const input = document.getElementById(`editSecInput_${bookId}_${chId}_${secId}`);
-      if (input) { input.focus(); input.select(); }
+      input?.focus(); input?.select();
     }
 
     function finishEditSectionTitle(bookId, chId, secId) {
       const input = document.getElementById(`editSecInput_${bookId}_${chId}_${secId}`);
       if (!input) return;
-      const newTitle = input.value.trim();
+      const val = input.value.trim();
       const book = plannerData.reviews.find(b => b.id === bookId);
       const ch = book?.chapters.find(c => c.id === chId);
       const sec = ch?.sections.find(s => s.id === secId);
-      if (sec && newTitle) {
-        sec.title = newTitle;
+      if (sec && val) {
+        sec.title = val;
         saveData();
       }
       renderReviewSection();
@@ -2307,12 +2303,8 @@
       const ch = book?.chapters.find(c => c.id === chId);
       if (ch) {
         ch.count = Math.max(0, (ch.count || 0) + delta);
-        const today = getTodayStr();
-        if (!ch.startDate) ch.startDate = today;
-        ch.endDate = today;
-        const diff = Math.ceil((new Date(today) - new Date(ch.startDate)) / (1000 * 60 * 60 * 24));
-        ch.duration = Math.max(1, diff + 1);
-        saveData(); renderReviewSection();
+        saveData();
+        renderReviewSection();
       }
     }
 
@@ -2322,18 +2314,20 @@
       const sec = ch?.sections.find(s => s.id === secId);
       if (sec) {
         sec.count = Math.max(0, (sec.count || 0) + delta);
-        const today = getTodayStr();
-        if (!sec.startDate) sec.startDate = today;
-        sec.endDate = today;
-        const diff = Math.ceil((new Date(today) - new Date(sec.startDate)) / (1000 * 60 * 60 * 24));
-        sec.duration = Math.max(1, diff + 1);
-        saveData(); renderReviewSection();
+        saveData();
+        renderReviewSection();
       }
+    }
+
+    function deleteReviewBook(bookId) {
+      plannerData.reviews = plannerData.reviews.filter(b => b.id !== bookId);
+      saveData();
+      renderReviewSection();
     }
 
     function deleteChapter(bookId, chId) {
       const book = plannerData.reviews.find(b => b.id === bookId);
-      if (book) {
+      if (book && book.chapters) {
         book.chapters = book.chapters.filter(c => c.id !== chId);
         saveData();
         renderReviewSection();
@@ -2343,188 +2337,206 @@
     function deleteSection(bookId, chId, secId) {
       const book = plannerData.reviews.find(b => b.id === bookId);
       const ch = book?.chapters.find(c => c.id === chId);
-      if (ch) {
+      if (ch && ch.sections) {
         ch.sections = ch.sections.filter(s => s.id !== secId);
         saveData();
         renderReviewSection();
       }
     }
 
-    function deleteReviewBook(id) {
-      plannerData.reviews = plannerData.reviews.filter(r => r.id !== id);
-      saveData();
-      renderReviewSection();
-    }
-
-    /* Yearly Goal & Schedule */
+    /* Yearly */
     function renderYearlyView() {
       const grid = document.getElementById('yearlyGrid');
       grid.innerHTML = '';
-      const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+      const currentYear = new Date().getFullYear();
 
-      months.forEach((m, idx) => {
-        const mKey = `2026-${String(idx + 1).padStart(2, '0')}`;
+      for (let month = 1; month <= 12; month++) {
+        const mKey = `${currentYear}-${String(month).padStart(2, '0')}`;
         const mData = plannerData.yearlyData[mKey] || { goals: [], items: [] };
 
-        const goalsHtml = (mData.goals || []).map((g, gIdx) => `
-          <div class="yearly-goal-item">
-            <span class="yearly-text" onclick="startInlineGoalEdit('${mKey}', ${gIdx})">${escapeHtml(g)}</span>
-            ${editModes.yearly ? `<button class="task-delete" onclick="deleteYearlyGoalItem('${mKey}',${gIdx})">✕</button>` : ''}
+        const goalsHtml = (mData.goals || []).map((g, idx) => `
+          <div class="yearly-goal-item" onclick="openYearlyGoalModal('${mKey}', ${idx})">
+            <span class="yearly-text">${escapeHtml(g)}</span>
+            ${editModes.yearly ? `<button class="task-delete" onclick="event.stopPropagation(); deleteYearlyGoal('${mKey}',${idx})">✕</button>` : ''}
           </div>
         `).join('');
 
-        const itemsHtml = (mData.items || []).map((it, iIdx) => `
-          <div class="yearly-item" onclick="openYearlyEditModal('edit', '${mKey}', ${iIdx}, '${escapeHtml(it.text)}', '${escapeHtml(it.date)}')">
-            <span class="bold-date">${escapeHtml(it.date || '')}</span>
-            <span class="yearly-text">${escapeHtml(it.text)}</span>
-            ${editModes.yearly ? `<button class="task-delete" onclick="event.stopPropagation(); deleteYearlyScheduleItem('${mKey}',${iIdx})">✕</button>` : ''}
+        const itemsHtml = (mData.items || []).map((item, idx) => `
+          <div class="yearly-item" onclick="openYearlyItemEditModal('${mKey}', ${idx})">
+            <span class="bold-date">${escapeHtml(item.date)}</span>
+            <span class="yearly-text">${escapeHtml(item.text)}</span>
+            ${editModes.yearly ? `<button class="task-delete" onclick="event.stopPropagation(); deleteYearlyItem('${mKey}',${idx})">✕</button>` : ''}
           </div>
         `).join('');
 
         grid.innerHTML += `
           <div class="month-card">
-            <div class="month-header"><span class="month-title">${m}</span></div>
+            <div class="month-header">
+              <span class="month-title">${month}월</span>
+            </div>
             <div class="goal-box">
               <div class="goal-box-header">
-                <span class="goal-box-title">Goal</span>
+                <span class="goal-box-title">Goals</span>
                 <button class="simple-plus-btn" onclick="openYearlyGoalModal('${mKey}')">+</button>
               </div>
-              <div class="goal-list">${goalsHtml || '<div style="font-size:0.7rem; color:var(--sub-text);">등록된 목표 없음</div>'}</div>
+              <div class="goal-list">${goalsHtml}</div>
             </div>
             <div class="schedule-box">
               <div class="schedule-header">
                 <span class="schedule-title">Schedule</span>
                 <button class="simple-plus-btn" onclick="openYearlyCalendarModal('${mKey}')">+</button>
               </div>
-              <div class="yearly-list">${itemsHtml || '<div style="font-size:0.7rem; color:var(--sub-text);">등록된 일정 없음</div>'}</div>
+              <div class="yearly-list">${itemsHtml}</div>
             </div>
           </div>
         `;
-      });
+      }
     }
 
-    function openYearlyGoalModal(mKey) {
+    function openYearlyGoalModal(mKey, idx = null) {
       document.getElementById('yearlyGoalMonthKey').value = mKey;
       const select = document.getElementById('yearlyGoalLectureSelect');
-      select.innerHTML = '<option value="">직접 입력</option>' + (plannerData.lectures || []).map(l => `<option value="${escapeHtml(l.title)}">${escapeHtml(l.subject)} - ${escapeHtml(l.title)}</option>`).join('');
-      document.getElementById('yearlyGoalTextInput').value = '';
+      select.innerHTML = '<option value="">직접 입력</option>' + (plannerData.lectures || []).map(l => `<option value="${l.id}">${escapeHtml(l.title)}</option>`).join('');
+      
+      const mData = plannerData.yearlyData[mKey] || { goals: [], items: [] };
+      document.getElementById('yearlyGoalTextInput').value = idx !== null ? (mData.goals[idx] || '') : '';
       openModal('yearlyGoalModal');
     }
 
     function handleYearlyGoalLectureChange() {
-      const val = document.getElementById('yearlyGoalLectureSelect').value;
-      if (val) document.getElementById('yearlyGoalTextInput').value = val + ' 완강';
+      const select = document.getElementById('yearlyGoalLectureSelect');
+      const input = document.getElementById('yearlyGoalTextInput');
+      if (select.value) {
+        const lec = plannerData.lectures.find(l => l.id == select.value);
+        if (lec) input.value = `${lec.title} 완강`;
+      }
     }
 
     function saveYearlyGoal() {
       const mKey = document.getElementById('yearlyGoalMonthKey').value;
       const text = document.getElementById('yearlyGoalTextInput').value.trim();
       if (!text) return;
-      plannerData.yearlyData[mKey] = plannerData.yearlyData[mKey] || { goals: [], items: [] };
+
+      if (!plannerData.yearlyData[mKey]) plannerData.yearlyData[mKey] = { goals: [], items: [] };
       plannerData.yearlyData[mKey].goals.push(text);
-      saveData(); closeModal('yearlyGoalModal'); renderYearlyView();
+
+      saveData();
+      closeModal('yearlyGoalModal');
+      renderYearlyView();
     }
 
-    function startInlineGoalEdit(mKey, gIdx) {
-      openYearlyEditModal('editGoal', mKey, gIdx, plannerData.yearlyData[mKey]?.goals[gIdx] || '', '');
-    }
-
-    function deleteYearlyGoalItem(mKey, gIdx) {
-      plannerData.yearlyData[mKey].goals.splice(gIdx, 1);
-      saveData(); renderYearlyView();
-    }
-
-    function deleteYearlyScheduleItem(mKey, iIdx) {
-      plannerData.yearlyData[mKey].items.splice(iIdx, 1);
-      saveData(); renderYearlyView();
+    function deleteYearlyGoal(mKey, idx) {
+      if (plannerData.yearlyData[mKey]?.goals) {
+        plannerData.yearlyData[mKey].goals.splice(idx, 1);
+        saveData();
+        renderYearlyView();
+      }
     }
 
     function openYearlyCalendarModal(mKey) {
-      calMonthKey = mKey; calIsPeriodMode = false; calStartDay = null; calEndDay = null;
+      calMonthKey = mKey;
+      calIsPeriodMode = false;
+      calStartDay = null;
+      calEndDay = null;
+      document.getElementById('calTitle').innerText = `${mKey.split('-')[1]}월 일정 등록`;
       document.getElementById('periodToggleBtn').classList.remove('active');
-      const [year, month] = mKey.split('-').map(Number);
-      document.getElementById('calTitle').innerText = `${year}년 ${month}월`;
-      renderCalendarGrid(year, month);
+      renderCalendarGrid();
       openModal('yearlyCalendarModal');
     }
 
     function togglePeriodMode() {
       calIsPeriodMode = !calIsPeriodMode;
-      calStartDay = null; calEndDay = null;
+      calStartDay = null;
+      calEndDay = null;
       document.getElementById('periodToggleBtn').classList.toggle('active', calIsPeriodMode);
-      const [year, month] = calMonthKey.split('-').map(Number);
-      renderCalendarGrid(year, month);
+      renderCalendarGrid();
     }
 
-    function renderCalendarGrid(year, month) {
+    function renderCalendarGrid() {
+      const [y, m] = calMonthKey.split('-').map(Number);
       const grid = document.getElementById('calGrid');
       grid.innerHTML = ['일', '월', '화', '수', '목', '금', '토'].map(d => `<div class="calendar-day-head">${d}</div>`).join('');
-      const firstDay = new Date(year, month - 1, 1).getDay();
-      const lastDate = new Date(year, month, 0).getDate();
 
-      for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div class="calendar-day-cell muted"></div>`;
-      for (let d = 1; d <= lastDate; d++) {
-        let cls = 'calendar-day-cell';
-        if (calIsPeriodMode) {
-          if (calStartDay === d || calEndDay === d) cls += ' selected';
-          else if (calStartDay && calEndDay && d > calStartDay && d < calEndDay) cls += ' in-range';
-        } else if (calStartDay === d) cls += ' selected';
-        grid.innerHTML += `<div class="${cls}" onclick="selectCalDate(${d})">${d}</div>`;
+      const firstDay = new Date(y, m - 1, 1).getDay();
+      const lastDate = new Date(y, m, 0).getDate();
+
+      for (let i = 0; i < firstDay; i++) {
+        grid.innerHTML += `<div class="calendar-day-cell muted"></div>`;
+      }
+
+      for (let day = 1; day <= lastDate; day++) {
+        let isSelected = (calStartDay === day || calEndDay === day);
+        let inRange = calStartDay && calEndDay && day > calStartDay && day < calEndDay;
+        
+        grid.innerHTML += `
+          <div class="calendar-day-cell ${isSelected ? 'selected' : ''} ${inRange ? 'in-range' : ''}" onclick="selectCalDay(${day})">
+            ${day}
+          </div>
+        `;
       }
     }
 
-    function selectCalDate(day) {
+    function selectCalDay(day) {
       if (!calIsPeriodMode) {
         closeModal('yearlyCalendarModal');
-        openYearlyEditModal('new', calMonthKey, null, '', `${day}일`);
+        openYearlyItemEditModal(calMonthKey, null, `${day}일`);
       } else {
-        if (!calStartDay || (calStartDay && calEndDay)) { calStartDay = day; calEndDay = null; }
-        else if (day >= calStartDay) {
-          calEndDay = day; closeModal('yearlyCalendarModal');
-          openYearlyEditModal('new', calMonthKey, null, '', `${calStartDay}~${calEndDay}일`);
-        } else { calStartDay = day; }
-        const [y, m] = calMonthKey.split('-').map(Number); renderCalendarGrid(y, m);
+        if (!calStartDay || (calStartDay && calEndDay)) {
+          calStartDay = day;
+          calEndDay = null;
+        } else {
+          if (day < calStartDay) {
+            calEndDay = calStartDay;
+            calStartDay = day;
+          } else {
+            calEndDay = day;
+          }
+          closeModal('yearlyCalendarModal');
+          openYearlyItemEditModal(calMonthKey, null, `${calStartDay}~${calEndDay}일`);
+        }
+        renderCalendarGrid();
       }
     }
 
-    function openYearlyEditModal(type, mKey, idx, text = '', date = '') {
-      document.getElementById('yearlyEditType').value = type;
+    function openYearlyItemEditModal(mKey, idx = null, defaultDate = '') {
       document.getElementById('yearlyEditMonthKey').value = mKey;
       document.getElementById('yearlyEditIdx').value = idx !== null ? idx : '';
-      document.getElementById('yearlyEditDateInput').value = date;
-      document.getElementById('yearlyEditTextInput').value = text;
-      
-      const dateGroup = document.getElementById('yearlyEditDateGroup');
-      if (dateGroup) {
-        dateGroup.style.display = (type === 'editGoal') ? 'none' : 'block';
-      }
-
+      const item = idx !== null ? plannerData.yearlyData[mKey]?.items[idx] : null;
+      document.getElementById('yearlyEditDateInput').value = item ? item.date : defaultDate;
+      document.getElementById('yearlyEditTextInput').value = item ? item.text : '';
       openModal('yearlyEditModal');
     }
 
     function saveYearlyItemEdit() {
-      const type = document.getElementById('yearlyEditType').value;
       const mKey = document.getElementById('yearlyEditMonthKey').value;
       const idxStr = document.getElementById('yearlyEditIdx').value;
       const date = document.getElementById('yearlyEditDateInput').value.trim();
       const text = document.getElementById('yearlyEditTextInput').value.trim();
-      if (!text) return;
+      if (!date || !text) return;
 
-      plannerData.yearlyData[mKey] = plannerData.yearlyData[mKey] || { goals: [], items: [] };
+      if (!plannerData.yearlyData[mKey]) plannerData.yearlyData[mKey] = { goals: [], items: [] };
 
-      if (type === 'editGoal') {
-        if (idxStr !== '') plannerData.yearlyData[mKey].goals[parseInt(idxStr, 10)] = text;
+      if (idxStr !== '') {
+        const idx = parseInt(idxStr, 10);
+        plannerData.yearlyData[mKey].items[idx] = { date, text };
       } else {
-        if (type === 'new' || idxStr === '') plannerData.yearlyData[mKey].items.push({ date, text });
-        else plannerData.yearlyData[mKey].items[parseInt(idxStr, 10)] = { date, text };
+        plannerData.yearlyData[mKey].items.push({ date, text });
       }
 
-      saveData(); closeModal('yearlyEditModal'); renderYearlyView();
+      saveData();
+      closeModal('yearlyEditModal');
+      renderYearlyView();
     }
 
-    window.onload = () => {
-      loadData();
-    };
+    function deleteYearlyItem(mKey, idx) {
+      if (plannerData.yearlyData[mKey]?.items) {
+        plannerData.yearlyData[mKey].items.splice(idx, 1);
+        saveData();
+        renderYearlyView();
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadData);
   </script>
 </body>
 </html>
