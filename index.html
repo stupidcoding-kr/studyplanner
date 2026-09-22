@@ -1355,6 +1355,7 @@
     let selectedCategory = '', selectedSubject = '', activeSubjectFilter = '';
     let calMonthKey = '', calIsPeriodMode = false, calStartDay = null, calEndDay = null;
     let kakaoSearchResultsData = [];
+    let syncTimer = null; // 디바운스 타이머 변수
 
     let plannerData = {
       ddays: [],
@@ -1376,9 +1377,18 @@
       return new Date().toISOString().split('T')[0];
     }
 
+    // 디바운스를 포함한 저장 및 동기화 함수
     function saveData() {
       localStorage.setItem('notion_study_planner_v10', JSON.stringify(plannerData));
-      syncToNotionAuto('upsert');
+      debouncedSyncToNotionAuto('upsert', null, 1000);
+    }
+
+    // 디바운스 처리 헬퍼 함수 (1초 지연)
+    function debouncedSyncToNotionAuto(action = 'upsert', targetInfo = null, delay = 1000) {
+      if (syncTimer) clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        syncToNotionAuto(action, targetInfo);
+      }, delay);
     }
 
     async function loadData() {
@@ -1438,7 +1448,7 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: action, // 'upsert' 또는 'delete'
+            action: action,
             date: todayStr,
             summary: dailySummary,
             targetInfo: targetInfo,
@@ -1560,10 +1570,8 @@
     }
 
     function deleteDDay(idx) {
-      const target = plannerData.ddays[idx];
       plannerData.ddays.splice(idx, 1);
       saveData();
-      syncToNotionAuto('delete', { type: 'dday', item: target });
       renderDDays();
     }
 
@@ -1635,10 +1643,8 @@
     }
 
     function deleteTask(dateStr, idx) {
-      const targetTask = plannerData.tasks[dateStr]?.[idx];
       plannerData.tasks[dateStr].splice(idx, 1);
       saveData();
-      syncToNotionAuto('delete', { type: 'task', date: dateStr, task: targetTask });
       renderWeeklyView();
     }
 
@@ -1734,7 +1740,6 @@
       plannerData.subjects = plannerData.subjects.filter(s => s !== sub);
       plannerData.lectures = plannerData.lectures.filter(l => l.subject !== sub);
       saveData();
-      syncToNotionAuto('delete', { type: 'subject', subject: sub });
       renderLectures();
     }
 
@@ -1806,10 +1811,8 @@
     }
 
     function deleteLecture(id) {
-      const targetLec = plannerData.lectures.find(l => l.id === id);
       plannerData.lectures = plannerData.lectures.filter(l => l.id !== id);
       saveData();
-      syncToNotionAuto('delete', { type: 'lecture', id: id, lecture: targetLec });
       renderLectures();
     }
 
@@ -2116,10 +2119,8 @@
     function deleteChapter(bookId, chId) {
       const book = plannerData.reviews.find(b => b.id === bookId);
       if (book) {
-        const targetCh = book.chapters.find(c => c.id === chId);
         book.chapters = book.chapters.filter(c => c.id !== chId);
         saveData();
-        syncToNotionAuto('delete', { type: 'chapter', bookId, chapterId: chId, chapter: targetCh });
         renderReviewSection();
       }
     }
@@ -2128,19 +2129,15 @@
       const book = plannerData.reviews.find(b => b.id === bookId);
       const ch = book?.chapters.find(c => c.id === chId);
       if (ch) {
-        const targetSec = ch.sections.find(s => s.id === secId);
         ch.sections = ch.sections.filter(s => s.id !== secId);
         saveData();
-        syncToNotionAuto('delete', { type: 'section', bookId, chapterId: chId, sectionId: secId, section: targetSec });
         renderReviewSection();
       }
     }
 
     function deleteReviewBook(id) {
-      const targetBook = plannerData.reviews.find(r => r.id === id);
       plannerData.reviews = plannerData.reviews.filter(r => r.id !== id);
       saveData();
-      syncToNotionAuto('delete', { type: 'reviewBook', id: id, book: targetBook });
       renderReviewSection();
     }
 
