@@ -1377,8 +1377,52 @@
       return new Date().toISOString().split('T')[0];
     }
 
+    // '행정학' 및 무효 데이터 완전 정제 함수
+    function sanitizePlannerData() {
+      if (!plannerData) return;
+
+      if (Array.isArray(plannerData.subjects)) {
+        plannerData.subjects = plannerData.subjects.filter(s => typeof s === 'string' && !s.includes('행정학'));
+      }
+
+      if (Array.isArray(plannerData.lectures)) {
+        plannerData.lectures = plannerData.lectures.filter(l => l && l.subject && !l.subject.includes('행정학') && !(l.title && l.title.includes('행정학')));
+      }
+
+      if (Array.isArray(plannerData.reviews)) {
+        plannerData.reviews = plannerData.reviews.filter(r => r && r.subject && !r.subject.includes('행정학') && !(r.title && r.title.includes('행정학')));
+      }
+
+      if (plannerData.tasks && typeof plannerData.tasks === 'object') {
+        Object.keys(plannerData.tasks).forEach(dateKey => {
+          if (Array.isArray(plannerData.tasks[dateKey])) {
+            plannerData.tasks[dateKey] = plannerData.tasks[dateKey].filter(t => t && t.text && !t.text.includes('행정학'));
+          }
+        });
+      }
+
+      if (plannerData.yearlyData && typeof plannerData.yearlyData === 'object') {
+        Object.keys(plannerData.yearlyData).forEach(mKey => {
+          const mData = plannerData.yearlyData[mKey];
+          if (mData) {
+            if (Array.isArray(mData.goals)) {
+              mData.goals = mData.goals.filter(g => typeof g === 'string' && !g.includes('행정학'));
+            }
+            if (Array.isArray(mData.items)) {
+              mData.items = mData.items.filter(it => it && it.text && !it.text.includes('행정학'));
+            }
+          }
+        });
+      }
+
+      if (activeSubjectFilter.includes('행정학')) {
+        activeSubjectFilter = '';
+      }
+    }
+
     // 디바운스를 포함한 저장 및 동기화 함수
     function saveData() {
+      sanitizePlannerData();
       localStorage.setItem('notion_study_planner_v10', JSON.stringify(plannerData));
       debouncedSyncToNotionAuto('upsert', null, 1000);
     }
@@ -1404,36 +1448,45 @@
           const res = await fetch('planner_data.json');
           if (res.ok) {
             plannerData = await res.json();
-            saveData();
           }
         } catch (e) {
           console.warn('planner_data.json 파일 로드 실패 (기본값 사용):', e);
         }
       }
+      sanitizePlannerData();
+      saveData();
       render();
     }
 
     async function syncToNotionAuto(action = 'upsert', targetInfo = null) {
+      sanitizePlannerData();
       const todayStr = getTodayStr();
 
-      // 하루치 최종 종합 요약 데이터 정제
+      // 하루치 최종 종합 요약 데이터 정제 (각 위젯 영역마다 최종본 1개/통합 단일 형태로 정리)
       const todayTasks = plannerData.tasks[todayStr] || [];
       const todayStudyTime = plannerData.studyTimes?.[todayStr] || '';
       
-      const lectureProgressList = (plannerData.lectures || []).map(l => {
-        const percent = Math.min(100, Math.round(((l.current || 0) / l.total) * 100));
-        return `[${l.subject}] ${l.title} : ${l.current || 0}/${l.total}강 (${percent}%)`;
-      });
+      const lectureProgressList = (plannerData.lectures || [])
+        .filter(l => l && l.subject && !l.subject.includes('행정학'))
+        .map(l => {
+          const percent = Math.min(100, Math.round(((l.current || 0) / l.total) * 100));
+          return `[${l.subject}] ${l.title} : ${l.current || 0}/${l.total}강 (${percent}%)`;
+        });
 
       const reviewSummaryList = [];
-      (plannerData.reviews || []).forEach(b => {
-        (b.chapters || []).forEach(ch => {
-          if (ch.count > 0) reviewSummaryList.push(`[${b.subject}] ${b.title} - ${ch.title} : ${ch.count}회독`);
-          (ch.sections || []).forEach(sec => {
-            if (sec.count > 0) reviewSummaryList.push(`[${b.subject}] ${b.title} - ${ch.title} ${sec.title} : ${sec.count}회독`);
+      (plannerData.reviews || [])
+        .filter(b => b && b.subject && !b.subject.includes('행정학'))
+        .forEach(b => {
+          let maxCount = 0;
+          (b.chapters || []).forEach(ch => {
+            if ((ch.count || 0) > maxCount) maxCount = ch.count;
+            (ch.sections || []).forEach(sec => {
+              if ((sec.count || 0) > maxCount) maxCount = sec.count;
+            });
           });
+          // 세부 장/절 개별 항목 누적 출력 대신 교재당 최종 회독수 1줄로만 요약 정리
+          reviewSummaryList.push(`[${b.subject}] ${b.title} : ${maxCount}회독`);
         });
-      });
 
       const dailySummary = {
         date: todayStr,
@@ -1514,6 +1567,7 @@
     function handleBackdropClick(e, id) { if (e.target.classList.contains('modal-backdrop')) closeModal(id); }
 
     function render() {
+      sanitizePlannerData();
       renderDDays();
       renderWeeklyView();
       renderLectures();
@@ -1643,7 +1697,6 @@
 
       task.completed = !task.completed;
 
-      // 인강 연동 과제 체크 시 인강 진도율 자동 업데이트
       if (task.lectureId) {
         const lec = plannerData.lectures.find(l => l.id == task.lectureId);
         if (lec) {
@@ -1810,7 +1863,7 @@
 
     function saveSubjectModal() {
       const name = document.getElementById('subjectNameInput').value.trim();
-      if (name && !plannerData.subjects.includes(name)) {
+      if (name && !name.includes('행정학') && !plannerData.subjects.includes(name)) {
         plannerData.subjects.push(name); saveData(); renderLectures();
       }
       closeModal('subjectModal');
@@ -1898,6 +1951,7 @@
 
     /* Kakao Book & Review */
     function openKakaoSearchModal(subject) {
+      if (subject.includes('행정학')) return;
       document.getElementById('kakaoTargetSubject').value = subject;
       document.getElementById('kakaoSearchQuery').value = '';
       document.getElementById('kakaoSearchResults').innerHTML = '';
@@ -1933,6 +1987,7 @@
       const doc = kakaoSearchResultsData[index];
       if (!doc) return;
       const subject = document.getElementById('kakaoTargetSubject').value;
+      if (subject.includes('행정학')) return;
       plannerData.reviews.push({ id: Date.now(), subject, title: doc.title, thumbnail: doc.thumbnail || '', chapters: [] });
       saveData(); closeModal('kakaoBookModal'); renderReviewSection();
     }
