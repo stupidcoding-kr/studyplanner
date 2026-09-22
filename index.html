@@ -1151,7 +1151,7 @@
     <div id="reviewSection" class="review-section">
       <div class="section-header">
         <div class="section-title">
-          <span>Review</span>
+          <span>📖 Review</span>
           <button class="gear-btn" id="reviewGearBtn" onclick="toggleEditMode('review')" title="삭제 모드">⚙</button>
         </div>
       </div>
@@ -1534,7 +1534,7 @@
         ...Object.keys(plannerData.studyTimes || {})
       ]));
 
-      // 회독 현황 리스트 생성
+      // 회독 현황 리스트 생성 (책 아이콘 📖 반영)
       const reviewSummaryList = [];
       (plannerData.reviews || []).forEach(b => {
         let maxCount = 0;
@@ -1544,7 +1544,7 @@
             if ((sec.count || 0) > maxCount) maxCount = sec.count;
           });
         });
-        reviewSummaryList.push(`- ${b.title} [${b.subject}]:${maxCount}회독`);
+        reviewSummaryList.push(`📖 ${b.title} [${b.subject}]:${maxCount}회독`);
       });
 
       for (const dateKey of datesToSync) {
@@ -1562,12 +1562,12 @@
           ? reviewSummaryList.join('\n')
           : '등록된 회독 정보 없음';
 
-        // 캡처 이미지에 포함된 내용(당일 학습 플랜, 인강 수강 현황, 달성률)은 노션 DB 페이지 본문에서 삭제
+        // 캡처 이미지 삭제 요건 반영: 제목 헤더/콜아웃 삭제 및 📖 회독 현황 구성
         const reportText = [
           `📅 날짜: ${dateKey}`,
           `⏱ 총 순공시간: ${dayStudyTime}`,
           ``,
-          `[ 회독 현황 ]`,
+          `📖 회독 현황`,
           reviewLines
         ].join('\n');
 
