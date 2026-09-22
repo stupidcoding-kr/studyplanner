@@ -27,15 +27,48 @@ export default async function handler(req, res) {
   };
 
   try {
-    // 1. GET Request: 노션 DB에서 기존 데이터 조회
+    // 1. GET Request: 노션 DB에서 최신 기존 데이터 및 저장된 plannerData JSON 파싱 복원
     if (req.method === 'GET') {
       const queryRes = await fetch(`https://api.notion.com/v1/databases/${DATABASE_ID}/query`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ page_size: 100 })
+        body: JSON.stringify({
+          page_size: 10,
+          sorts: [{ property: 'Date', direction: 'descending' }]
+        })
       });
       const queryData = await queryRes.json();
-      return res.status(200).json(queryData);
+
+      let savedPlannerData = null;
+
+      // 가장 최근 작성된 페이지에서 백업용 plannerData code 블록 탐색
+      if (queryData.results && queryData.results.length > 0) {
+        for (const page of queryData.results) {
+          const blocksRes = await fetch(`https://api.notion.com/v1/blocks/${page.id}/children?page_size=100`, {
+            method: 'GET',
+            headers
+          });
+          const blocksData = await blocksRes.json();
+          if (blocksData.results) {
+            const codeBlock = blocksData.results.find(b => b.type === 'code');
+            if (codeBlock && codeBlock.code && codeBlock.code.rich_text?.length > 0) {
+              try {
+                const rawJson = codeBlock.code.rich_text.map(t => t.plain_text || t.text?.content || '').join('');
+                savedPlannerData = JSON.parse(rawJson);
+                break;
+              } catch (e) {
+                // 파싱 오류 시 계속 탐색
+              }
+            }
+          }
+        }
+      }
+
+      return res.status(200).json({
+        success: true,
+        queryData,
+        plannerData: savedPlannerData
+      });
     }
 
     // 2. POST Request: 노션 DB에 날짜별 페이지 생성 및 기록
@@ -56,7 +89,7 @@ export default async function handler(req, res) {
       });
       const searchData = await searchRes.json();
 
-      // 노션 본문 블록 생성 (summary 전달 포함)
+      // 노션 본문 블록 생성 (summary 전달 및 plannerData 백업 코드 블록 포함)
       const blocks = buildNotionBlocks(targetDate, plannerData, summary);
 
       if (searchData.results && searchData.results.length > 0) {
@@ -141,161 +174,174 @@ function buildNotionBlocks(dateStr, data, summary) {
 
   // 2. 총평 및 요약 (summary 전달 시 인용구 블록으로 작성)
   if (summary) {
+    const summaryText = typeof summary === 'string' ? summary : (summary.reportText || JSON.stringify(summary));
     blocks.push({
       object: 'block',
       type: 'quote',
       quote: {
-        rich_text: [{ type: 'text', text: { content: summary } }]
+        rich_text: [{ type: 'text', text: { content: summaryText } }]
       }
     });
   }
 
-  if (!data) return blocks;
+  if (data) {
+    // 3. 당일 순공시간 및 플랜 달성률 요약 (Callout 박스)
+    const todayTasks = data.tasks?.[dateStr] || [];
+    const todayStudyTime = data.studyTimes?.[dateStr] || '기록 없음';
+    const completedCount = todayTasks.filter(t => t.completed).length;
+    const achieveRate = todayTasks.length > 0 ? Math.round((completedCount / todayTasks.length) * 100) : 0;
 
-  // 3. 당일 순공시간 및 플랜 달성률 요약 (Callout 박스)
-  const todayTasks = data.tasks?.[dateStr] || [];
-  const todayStudyTime = data.studyTimes?.[dateStr] || '기록 없음';
-  const completedCount = todayTasks.filter(t => t.completed).length;
-  const achieveRate = todayTasks.length > 0 ? Math.round((completedCount / todayTasks.length) * 100) : 0;
-
-  blocks.push({
-    object: 'block',
-    type: 'callout',
-    callout: {
-      icon: { emoji: '⏱️' },
-      color: 'blue_background',
-      rich_text: [
-        { type: 'text', text: { content: '당일 순공시간: ' }, annotations: { bold: true } },
-        { type: 'text', text: { content: `${todayStudyTime}  |  ` } },
-        { type: 'text', text: { content: '플랜 달성률: ' }, annotations: { bold: true } },
-        { type: 'text', text: { content: `${achieveRate}% (${completedCount}/${todayTasks.length} 완료)` } }
-      ]
-    }
-  });
-
-  blocks.push({ object: 'block', type: 'divider', divider: {} });
-
-  // 4. 당일 플랜 (To-Do List)
-  blocks.push({
-    object: 'block',
-    type: 'heading_2',
-    heading_2: {
-      rich_text: [{ type: 'text', text: { content: '✅ 당일 학습 플랜' } }]
-    }
-  });
-
-  if (todayTasks.length > 0) {
-    todayTasks.forEach(task => {
-      blocks.push({
-        object: 'block',
-        type: 'to_do',
-        to_do: {
-          rich_text: [{ type: 'text', text: { content: task.text || task.title || String(task) } }],
-          checked: !!task.completed
-        }
-      });
-    });
-  } else {
     blocks.push({
       object: 'block',
-      type: 'paragraph',
-      paragraph: {
-        rich_text: [{ type: 'text', text: { content: '등록된 당일 플랜이 없습니다.', annotations: { italic: true, color: 'gray' } } }]
+      type: 'callout',
+      callout: {
+        icon: { emoji: '⏱️' },
+        color: 'blue_background',
+        rich_text: [
+          { type: 'text', text: { content: '당일 순공시간: ' }, annotations: { bold: true } },
+          { type: 'text', text: { content: `${todayStudyTime}  |  ` } },
+          { type: 'text', text: { content: '플랜 달성률: ' }, annotations: { bold: true } },
+          { type: 'text', text: { content: `${achieveRate}% (${completedCount}/${todayTasks.length} 완료)` } }
+        ]
       }
     });
-  }
 
-  // 5. 인강 수강 현황
-  if (data.lectures && data.lectures.length > 0) {
+    blocks.push({ object: 'block', type: 'divider', divider: {} });
+
+    // 4. 당일 플랜 (To-Do List)
     blocks.push({
       object: 'block',
       type: 'heading_2',
       heading_2: {
-        rich_text: [{ type: 'text', text: { content: '🎧 인강 수강 현황' } }]
+        rich_text: [{ type: 'text', text: { content: '✅ 당일 학습 플랜' } }]
       }
     });
 
-    data.lectures.forEach(lec => {
-      const pct = lec.total > 0 ? Math.min(100, Math.round(((lec.current || 0) / lec.total) * 100)) : 0;
-      const startDate = lec.startDate || '미지정';
-      const isFinished = lec.current >= lec.total;
-      const endDate = lec.endDate || (isFinished ? '완강' : '진행 중');
-
-      const statusDetail = isFinished
-        ? `완강 완료 (${endDate})`
-        : `진행 중 (시작일: ${startDate})`;
-
+    if (todayTasks.length > 0) {
+      todayTasks.forEach(task => {
+        blocks.push({
+          object: 'block',
+          type: 'to_do',
+          to_do: {
+            rich_text: [{ type: 'text', text: { content: task.text || task.title || String(task) } }],
+            checked: !!task.completed
+          }
+        });
+      });
+    } else {
       blocks.push({
         object: 'block',
-        type: 'bulleted_list_item',
-        bulleted_list_item: {
-          rich_text: [
-            { type: 'text', text: { content: `[${lec.subject}] ` }, annotations: { bold: true, color: 'blue' } },
-            { type: 'text', text: { content: `${lec.title} ` }, annotations: { bold: true } },
-            { type: 'text', text: { content: `(${lec.instructor || '교수미상'})` }, annotations: { color: 'gray' } },
-            { type: 'text', text: { content: `\n   진행률: ${lec.current}/${lec.total}강 (${pct}%) · ${statusDetail}` }, annotations: { color: 'gray' } }
-          ]
+        type: 'paragraph',
+        paragraph: {
+          rich_text: [{ type: 'text', text: { content: '등록된 당일 플랜이 없습니다.', annotations: { italic: true, color: 'gray' } } }]
         }
       });
-    });
-  }
+    }
 
-  // 6. 회독 상세 이력 (장 및 절 계층구조 반영)
-  if (data.reviews && data.reviews.length > 0) {
-    blocks.push({
-      object: 'block',
-      type: 'heading_2',
-      heading_2: {
-        rich_text: [{ type: 'text', text: { content: '📖 회독 상세 이력' } }]
-      }
-    });
-
-    data.reviews.forEach(book => {
-      if (!book.chapters || book.chapters.length === 0) return;
-
+    // 5. 인강 수강 현황
+    if (data.lectures && data.lectures.length > 0) {
       blocks.push({
         object: 'block',
-        type: 'bulleted_list_item',
-        bulleted_list_item: {
-          rich_text: [
-            { type: 'text', text: { content: `📘 [${book.subject}] ${book.title}` }, annotations: { bold: true } }
-          ]
+        type: 'heading_2',
+        heading_2: {
+          rich_text: [{ type: 'text', text: { content: '🎧 인강 수강 현황' } }]
         }
       });
 
-      book.chapters.forEach(ch => {
-        const chStart = ch.startDate || '-';
-        const chEnd = ch.endDate || '진행 중';
+      data.lectures.forEach(lec => {
+        const pct = lec.total > 0 ? Math.min(100, Math.round(((lec.current || 0) / lec.total) * 100)) : 0;
+        const startDate = lec.startDate || '미지정';
+        const isFinished = lec.current >= lec.total;
+        const endDate = lec.endDate || (isFinished ? '완강' : '진행 중');
+
+        const statusDetail = isFinished
+          ? `완강 완료 (${endDate})`
+          : `진행 중 (시작일: ${startDate})`;
 
         blocks.push({
           object: 'block',
           type: 'bulleted_list_item',
           bulleted_list_item: {
             rich_text: [
-              { type: 'text', text: { content: `   • ${ch.title}: ` } },
-              { type: 'text', text: { content: `${ch.count || 0}회독` }, annotations: { bold: true, color: 'blue' } },
-              { type: 'text', text: { content: ` (기간: ${chStart} ~ ${chEnd})` }, annotations: { color: 'gray' } }
+              { type: 'text', text: { content: `[${lec.subject}] ` }, annotations: { bold: true, color: 'blue' } },
+              { type: 'text', text: { content: `${lec.title} ` }, annotations: { bold: true } },
+              { type: 'text', text: { content: `(${lec.instructor || '교수미상'})` }, annotations: { color: 'gray' } },
+              { type: 'text', text: { content: `\n   진행률: ${lec.current}/${lec.total}강 (${pct}%) · ${statusDetail}` }, annotations: { color: 'gray' } }
+            ]
+          }
+        });
+      });
+    }
+
+    // 6. 회독 상세 이력 (장 및 절 계층구조 반영)
+    if (data.reviews && data.reviews.length > 0) {
+      blocks.push({
+        object: 'block',
+        type: 'heading_2',
+        heading_2: {
+          rich_text: [{ type: 'text', text: { content: '📖 회독 상세 이력' } }]
+        }
+      });
+
+      data.reviews.forEach(book => {
+        if (!book.chapters || book.chapters.length === 0) return;
+
+        blocks.push({
+          object: 'block',
+          type: 'bulleted_list_item',
+          bulleted_list_item: {
+            rich_text: [
+              { type: 'text', text: { content: `📘 [${book.subject}] ${book.title}` }, annotations: { bold: true } }
             ]
           }
         });
 
-        (ch.sections || []).forEach(sec => {
-          const secStart = sec.startDate || '-';
-          const secEnd = sec.endDate || '진행 중';
+        book.chapters.forEach(ch => {
+          const chStart = ch.startDate || '-';
+          const chEnd = ch.endDate || '진행 중';
 
           blocks.push({
             object: 'block',
             type: 'bulleted_list_item',
             bulleted_list_item: {
               rich_text: [
-                { type: 'text', text: { content: `      - ${sec.title}: ` } },
-                { type: 'text', text: { content: `${sec.count || 0}회독` }, annotations: { bold: true, color: 'green' } },
-                { type: 'text', text: { content: ` (${secStart} ~ ${secEnd})` }, annotations: { color: 'gray' } }
+                { type: 'text', text: { content: `   • ${ch.title}: ` } },
+                { type: 'text', text: { content: `${ch.count || 0}회독` }, annotations: { bold: true, color: 'blue' } },
+                { type: 'text', text: { content: ` (기간: ${chStart} ~ ${chEnd})` }, annotations: { color: 'gray' } }
               ]
             }
           });
+
+          (ch.sections || []).forEach(sec => {
+            const secStart = sec.startDate || '-';
+            const secEnd = sec.endDate || '진행 중';
+
+            blocks.push({
+              object: 'block',
+              type: 'bulleted_list_item',
+              bulleted_list_item: {
+                rich_text: [
+                  { type: 'text', text: { content: `      - ${sec.title}: ` } },
+                  { type: 'text', text: { content: `${sec.count || 0}회독` }, annotations: { bold: true, color: 'green' } },
+                  { type: 'text', text: { content: ` (${secStart} ~ ${secEnd})` }, annotations: { color: 'gray' } }
+                ]
+              }
+            });
+          });
         });
       });
+    }
+
+    // 7. 전체 Planner Data 백업용 JSON Code Block (양방향 동기화를 위한 저장소 역할)
+    blocks.push({ object: 'block', type: 'divider', divider: {} });
+    blocks.push({
+      object: 'block',
+      type: 'code',
+      code: {
+        caption: [],
+        language: 'json',
+        rich_text: [{ type: 'text', text: { content: JSON.stringify(data) } }]
+      }
     });
   }
 
