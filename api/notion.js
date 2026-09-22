@@ -61,9 +61,29 @@ export default async function handler(req, res) {
       const blocks = buildNotionBlocks(targetDate, plannerData);
 
       if (searchData.results && searchData.results.length > 0) {
-        // 기존 페이지가 존재하는 경우 : 기존 내용 하단에 새로운 기록 블록 추가
+        // 기존 페이지가 존재하는 경우 : 기존 블록 삭제 후 새로운 내용으로 재작성
         const pageId = searchData.results[0].id;
-        
+
+        // 1) 기존 페이지 내 하위 블록 목록 조회
+        const existingBlocksRes = await fetch(`https://api.notion.com/v1/blocks/${pageId}/children?page_size=100`, {
+          method: 'GET',
+          headers
+        });
+        const existingBlocksData = await existingBlocksRes.json();
+
+        // 2) 기존 블록들 삭제 (Notion API는 블록 단위 개별 삭제 지원)
+        if (existingBlocksData.results && existingBlocksData.results.length > 0) {
+          await Promise.all(
+            existingBlocksData.results.map(block =>
+              fetch(`https://api.notion.com/v1/blocks/${block.id}`, {
+                method: 'DELETE',
+                headers
+              })
+            )
+          );
+        }
+
+        // 3) 최신 데이터로 새로운 블록 추가
         await fetch(`https://api.notion.com/v1/blocks/${pageId}/children`, {
           method: 'PATCH',
           headers,
@@ -120,7 +140,7 @@ function buildNotionBlocks(dateStr, data) {
   // 1. 순공 시간 및 당일 플랜 기록
   const todayTasks = data.tasks?.[dateStr] || [];
   const todayStudyTime = data.studyTimes?.[dateStr] || '기록 없음';
-  
+
   blocks.push({
     object: 'block',
     type: 'heading_2',
