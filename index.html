@@ -1493,29 +1493,27 @@
             const notionTasks = result.plannerData.tasks || {};
             const notionStudyTimes = result.plannerData.studyTimes || {};
 
-            plannerData.tasks = { ...plannerData.tasks, ...notionTasks };
-            plannerData.studyTimes = { ...plannerData.studyTimes, ...notionStudyTimes };
+            // 노션 DB에서 페이지 삭제 및 수정 발생 시 위젯에도 동일하게 즉시 반영되도록 노션 DB 데이터를 우선 기재
+            plannerData.tasks = notionTasks;
+            plannerData.studyTimes = notionStudyTimes;
 
             if (result.plannerData.lectures && Array.isArray(result.plannerData.lectures)) {
-              result.plannerData.lectures.forEach(nLec => {
-                const localLec = (plannerData.lectures || []).find(l => l.id == nLec.id);
-                if (!localLec) {
-                  plannerData.lectures.push(nLec);
-                }
-              });
+              if (result.plannerData.lectures.length > 0) {
+                plannerData.lectures = result.plannerData.lectures;
+              }
             }
             if (result.plannerData.reviews && Array.isArray(result.plannerData.reviews)) {
-              if (!plannerData.reviews || plannerData.reviews.length === 0) {
+              if (result.plannerData.reviews.length > 0) {
                 plannerData.reviews = result.plannerData.reviews;
               }
             }
             if (result.plannerData.ddays && Array.isArray(result.plannerData.ddays)) {
-              if (!plannerData.ddays || plannerData.ddays.length === 0) {
+              if (result.plannerData.ddays.length > 0) {
                 plannerData.ddays = result.plannerData.ddays;
               }
             }
             if (result.plannerData.yearlyData && typeof result.plannerData.yearlyData === 'object') {
-              plannerData.yearlyData = { ...plannerData.yearlyData, ...result.plannerData.yearlyData };
+              plannerData.yearlyData = result.plannerData.yearlyData;
             }
           }
         }
