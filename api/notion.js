@@ -10,8 +10,7 @@ export default async function handler(req, res) {
   );
 
   if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+    return res.status(200).end();
   }
 
   const NOTION_TOKEN = process.env.NOTION_TOKEN;
@@ -41,7 +40,7 @@ export default async function handler(req, res) {
 
     // 2. POST Request: 노션 DB에 날짜별 페이지 생성 및 기록
     if (req.method === 'POST') {
-      const { date, plannerData } = req.body;
+      const { date, summary, plannerData } = req.body || {};
       const targetDate = date || new Date().toISOString().split('T')[0];
 
       // 이미 해당 날짜로 만든 페이지가 있는지 조회
@@ -57,8 +56,8 @@ export default async function handler(req, res) {
       });
       const searchData = await searchRes.json();
 
-      // 노션 본문 블록 생성
-      const blocks = buildNotionBlocks(targetDate, plannerData);
+      // 노션 본문 블록 생성 (summary 전달 포함)
+      const blocks = buildNotionBlocks(targetDate, plannerData, summary);
 
       if (searchData.results && searchData.results.length > 0) {
         // 기존 페이지가 존재하는 경우 : 기존 블록 삭제 후 재작성
@@ -87,7 +86,12 @@ export default async function handler(req, res) {
           body: JSON.stringify({ children: blocks })
         });
 
-        return res.status(200).json({ success: true, action: 'updated', pageId });
+        return res.status(200).json({ 
+          success: true, 
+          action: 'updated', 
+          pageId, 
+          message: "오늘의 리포트가 성공적으로 업데이트되었습니다." 
+        });
       } else {
         // 신규 페이지 생성
         const createRes = await fetch('https://api.notion.com/v1/pages', {
@@ -107,18 +111,23 @@ export default async function handler(req, res) {
           })
         });
         const createData = await createRes.json();
-        return res.status(200).json({ success: true, action: 'created', data: createData });
+        return res.status(200).json({ 
+          success: true, 
+          action: 'created', 
+          data: createData, 
+          message: "오늘의 리포트가 새로 생성되었습니다." 
+        });
       }
     }
+
+    return res.status(405).json({ error: 'Method Not Allowed' });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
 }
 
 // 노션 페이지 본문(Block) 상세 기록 작성 헬퍼 함수
-function buildNotionBlocks(dateStr, data) {
-  if (!data) return [];
-
+function buildNotionBlocks(dateStr, data, summary) {
   const blocks = [];
 
   // 1. 메인 타이틀
@@ -130,7 +139,20 @@ function buildNotionBlocks(dateStr, data) {
     }
   });
 
-  // 2. 당일 순공시간 및 플랜 달성률 요약 (Callout 박스)
+  // 2. 총평 및 요약 (summary 전달 시 인용구 블록으로 작성)
+  if (summary) {
+    blocks.push({
+      object: 'block',
+      type: 'quote',
+      quote: {
+        rich_text: [{ type: 'text', text: { content: summary } }]
+      }
+    });
+  }
+
+  if (!data) return blocks;
+
+  // 3. 당일 순공시간 및 플랜 달성률 요약 (Callout 박스)
   const todayTasks = data.tasks?.[dateStr] || [];
   const todayStudyTime = data.studyTimes?.[dateStr] || '기록 없음';
   const completedCount = todayTasks.filter(t => t.completed).length;
@@ -153,7 +175,7 @@ function buildNotionBlocks(dateStr, data) {
 
   blocks.push({ object: 'block', type: 'divider', divider: {} });
 
-  // 3. 당일 플랜 (To-Do List)
+  // 4. 당일 플랜 (To-Do List)
   blocks.push({
     object: 'block',
     type: 'heading_2',
@@ -168,7 +190,7 @@ function buildNotionBlocks(dateStr, data) {
         object: 'block',
         type: 'to_do',
         to_do: {
-          rich_text: [{ type: 'text', text: { content: task.text } }],
+          rich_text: [{ type: 'text', text: { content: task.text || task.title || String(task) } }],
           checked: !!task.completed
         }
       });
@@ -183,7 +205,7 @@ function buildNotionBlocks(dateStr, data) {
     });
   }
 
-  // 4. 인강 수강 현황 (구조화 및 굵은 글씨, 색상 구분)
+  // 5. 인강 수강 현황
   if (data.lectures && data.lectures.length > 0) {
     blocks.push({
       object: 'block',
@@ -194,7 +216,7 @@ function buildNotionBlocks(dateStr, data) {
     });
 
     data.lectures.forEach(lec => {
-      const pct = Math.min(100, Math.round(((lec.current || 0) / lec.total) * 100));
+      const pct = lec.total > 0 ? Math.min(100, Math.round(((lec.current || 0) / lec.total) * 100)) : 0;
       const startDate = lec.startDate || '미지정';
       const isFinished = lec.current >= lec.total;
       const endDate = lec.endDate || (isFinished ? '완강' : '진행 중');
@@ -218,7 +240,7 @@ function buildNotionBlocks(dateStr, data) {
     });
   }
 
-  // 5. 회독 상세 이력 (장 및 절 계층구조 반영)
+  // 6. 회독 상세 이력 (장 및 절 계층구조 반영)
   if (data.reviews && data.reviews.length > 0) {
     blocks.push({
       object: 'block',
@@ -257,7 +279,6 @@ function buildNotionBlocks(dateStr, data) {
           }
         });
 
-        // 하위 절(sections)이 존재하는 경우 같이 기록
         (ch.sections || []).forEach(sec => {
           const secStart = sec.startDate || '-';
           const secEnd = sec.endDate || '진행 중';
