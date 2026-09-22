@@ -1490,18 +1490,27 @@
         if (res.ok) {
           const result = await res.json();
           if (result && result.plannerData) {
-            // 노션 DB 상태를 최우선으로 반영하여 삭제된 페이지 데이터가 재생성되지 않도록 동기화
-            plannerData.tasks = result.plannerData.tasks || {};
-            plannerData.studyTimes = result.plannerData.studyTimes || {};
+            const notionTasks = result.plannerData.tasks || {};
+            const notionStudyTimes = result.plannerData.studyTimes || {};
 
-            if (Array.isArray(result.plannerData.lectures)) {
-              plannerData.lectures = result.plannerData.lectures;
+            // 노션 DB에서 페이지 삭제 발생 시 위젯 데이터도 완전 초기화되도록 동기화 처리
+            plannerData.tasks = notionTasks;
+            plannerData.studyTimes = notionStudyTimes;
+
+            if (result.plannerData.lectures && Array.isArray(result.plannerData.lectures)) {
+              if (result.plannerData.lectures.length > 0) {
+                plannerData.lectures = result.plannerData.lectures;
+              }
             }
-            if (Array.isArray(result.plannerData.reviews)) {
-              plannerData.reviews = result.plannerData.reviews;
+            if (result.plannerData.reviews && Array.isArray(result.plannerData.reviews)) {
+              if (result.plannerData.reviews.length > 0) {
+                plannerData.reviews = result.plannerData.reviews;
+              }
             }
-            if (Array.isArray(result.plannerData.ddays)) {
-              plannerData.ddays = result.plannerData.ddays;
+            if (result.plannerData.ddays && Array.isArray(result.plannerData.ddays)) {
+              if (result.plannerData.ddays.length > 0) {
+                plannerData.ddays = result.plannerData.ddays;
+              }
             }
             if (result.plannerData.yearlyData && typeof result.plannerData.yearlyData === 'object') {
               plannerData.yearlyData = result.plannerData.yearlyData;
@@ -1525,16 +1534,18 @@
         ...Object.keys(plannerData.studyTimes || {})
       ]));
 
-      const lectureProgressLines = (plannerData.lectures || [])
+      // 인강 진도율 리스트 생성 (이미지 양식 반영)
+      const lectureProgressList = (plannerData.lectures || [])
         .filter(l => l && l.subject)
         .map(l => {
           const percent = Math.min(100, Math.round(((l.current || 0) / l.total) * 100));
-          const statusStr = percent >= 100 ? '완료' : '진행 중';
+          const statusStr = percent >= 100 ? '완강' : '진행 중';
           const startDateStr = l.startDate || getTodayStr();
           const instructorStr = l.instructor ? ` (${l.instructor})` : '';
-          return `- **${l.title || l.subject}**${instructorStr}\n  진행률: ${l.current || 0}/${l.total}강 (${percent}%) · ${statusStr} (시작일: ${startDateStr})`;
+          return `- ${l.title}${instructorStr}\n  진행률: ${l.current || 0}/${l.total}강 (${percent}%) · ${statusStr} (시작일: ${startDateStr})`;
         });
 
+      // 회독 현황 리스트 생성 (이미지 양식 반영)
       const reviewSummaryList = [];
       (plannerData.reviews || []).forEach(b => {
         let maxCount = 0;
@@ -1544,24 +1555,58 @@
             if ((sec.count || 0) > maxCount) maxCount = sec.count;
           });
         });
-        reviewSummaryList.push(`- [${b.subject}]${b.title} : ${maxCount}회독`);       });        for (const dateKey of datesToSync) {         const dayTasks = (plannerData.tasks[dateKey] \vert{}\vert{} []).map(t => ({           text: t.text,           completed: t.completed         }));         const dayStudyTime = plannerData.studyTimes?.[dateKey] \vert{}\vert{} '0H';          if (dayTasks.length === 0 && (!plannerData.studyTimes?.[dateKey]) && dateKey !== getTodayStr()) {           continue;         }          const completedCount = dayTasks.filter(t => t.completed).length;         const achievementRate = dayTasks.length ? Math.round((completedCount / dayTasks.length) * 100) : 0;          const taskLines = dayTasks.length           ? dayTasks.map(t => `${t.completed ? '✅' : '❌'} ${t.text}`)           : ['등록된 학습 계획 없음'];          // 이미지 양식과 완벽히 동일한 구조 생성         const reportText = [           `📅 날짜: ${dateKey}`,
-          `⏱ 총 순공시간: ${dayStudyTime}`,           `플랜 달성률: ${achievementRate}%`,
+        reviewSummaryList.push(`- ${b.title} [${b.subject}]: ${maxCount}회독`);
+      });
+
+      for (const dateKey of datesToSync) {
+        const dayTasks = (plannerData.tasks[dateKey] || []).map(t => ({
+          text: t.text,
+          completed: t.completed
+        }));
+        const dayStudyTime = plannerData.studyTimes?.[dateKey] || '0H';
+
+        if (dayTasks.length === 0 && (!plannerData.studyTimes?.[dateKey]) && dateKey !== getTodayStr()) {
+          continue;
+        }
+
+        const completedTasksCount = dayTasks.filter(t => t.completed).length;
+        const totalTasksCount = dayTasks.length;
+        const achievementRate = totalTasksCount > 0 ? Math.round((completedTasksCount / totalTasksCount) * 100) : 0;
+
+        const taskLines = dayTasks.length > 0
+          ? dayTasks.map(t => `${t.completed ? '✅' : '⬜'} ${t.text}`).join('\n')
+          : '등록된 학습 계획 없음';
+
+        const lectureLines = lectureProgressList.length > 0
+          ? lectureProgressList.join('\n')
+          : '진행 중인 인강 없음';
+
+        const reviewLines = reviewSummaryList.length > 0
+          ? reviewSummaryList.join('\n')
+          : '등록된 회독 정보 없음';
+
+        // 첨부 이미지와 정확히 동일한 서식의 리포트 텍스트 생성
+        const reportText = [
+          `📅 날짜: ${dateKey}`,
+          `⏱ 총 순공시간: ${dayStudyTime}`,
+          ``,
+          `플랜 달성률: ${achievementRate}%`,
           ``,
           `[ 오늘의 학습 계획 현황 ]`,
-          ...taskLines,
+          taskLines,
           ``,
           `[ 인강 진도율 현황 ]`,
-          ...(lectureProgressLines.length ? lectureProgressLines : ['진행 중인 인강 없음']),
+          lectureLines,
           ``,
           `[ 회독 현황 ]`,
-          ...(reviewSummaryList.length ? reviewSummaryList : ['등록된 회독 정보 없음'])
+          reviewLines
         ].join('\n');
 
         const dailySummary = {
           date: dateKey,
           studyTime: dayStudyTime,
           tasks: dayTasks,
-          lectureProgress: lectureProgressLines,
+          lectureProgress: lectureProgressList,
           reviewSummary: reviewSummaryList,
           reportText: reportText
         };
