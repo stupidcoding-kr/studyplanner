@@ -1490,27 +1490,18 @@
         if (res.ok) {
           const result = await res.json();
           if (result && result.plannerData) {
-            const notionTasks = result.plannerData.tasks || {};
-            const notionStudyTimes = result.plannerData.studyTimes || {};
+            // 노션 DB 상태를 최우선으로 반영하여 삭제된 페이지 데이터가 재생성되지 않도록 동기화
+            plannerData.tasks = result.plannerData.tasks || {};
+            plannerData.studyTimes = result.plannerData.studyTimes || {};
 
-            // 노션 DB에서 페이지 삭제 및 수정 발생 시 위젯에도 동일하게 즉시 반영되도록 노션 DB 데이터를 우선 기재
-            plannerData.tasks = notionTasks;
-            plannerData.studyTimes = notionStudyTimes;
-
-            if (result.plannerData.lectures && Array.isArray(result.plannerData.lectures)) {
-              if (result.plannerData.lectures.length > 0) {
-                plannerData.lectures = result.plannerData.lectures;
-              }
+            if (Array.isArray(result.plannerData.lectures)) {
+              plannerData.lectures = result.plannerData.lectures;
             }
-            if (result.plannerData.reviews && Array.isArray(result.plannerData.reviews)) {
-              if (result.plannerData.reviews.length > 0) {
-                plannerData.reviews = result.plannerData.reviews;
-              }
+            if (Array.isArray(result.plannerData.reviews)) {
+              plannerData.reviews = result.plannerData.reviews;
             }
-            if (result.plannerData.ddays && Array.isArray(result.plannerData.ddays)) {
-              if (result.plannerData.ddays.length > 0) {
-                plannerData.ddays = result.plannerData.ddays;
-              }
+            if (Array.isArray(result.plannerData.ddays)) {
+              plannerData.ddays = result.plannerData.ddays;
             }
             if (result.plannerData.yearlyData && typeof result.plannerData.yearlyData === 'object') {
               plannerData.yearlyData = result.plannerData.yearlyData;
@@ -1534,11 +1525,14 @@
         ...Object.keys(plannerData.studyTimes || {})
       ]));
 
-      const lectureProgressList = (plannerData.lectures || [])
+      const lectureProgressLines = (plannerData.lectures || [])
         .filter(l => l && l.subject)
         .map(l => {
           const percent = Math.min(100, Math.round(((l.current || 0) / l.total) * 100));
-          return `[${l.subject}] ${l.title} - ${l.current || 0}/${l.total}강 (${percent}%)`;
+          const statusStr = percent >= 100 ? '완료' : '진행 중';
+          const startDateStr = l.startDate || getTodayStr();
+          const instructorStr = l.instructor ? ` (${l.instructor})` : '';
+          return `- **${l.title || l.subject}**${instructorStr}\n  진행률: ${l.current || 0}/${l.total}강 (${percent}%) · ${statusStr} (시작일: ${startDateStr})`;
         });
 
       const reviewSummaryList = [];
@@ -1550,28 +1544,16 @@
             if ((sec.count || 0) > maxCount) maxCount = sec.count;
           });
         });
-        reviewSummaryList.push(`[${b.subject}] ${b.title} : ${maxCount}회독`);
-      });
-
-      for (const dateKey of datesToSync) {
-        const dayTasks = (plannerData.tasks[dateKey] || []).map(t => ({
-          text: t.text,
-          completed: t.completed
-        }));
-        const dayStudyTime = plannerData.studyTimes?.[dateKey] || '0H 0M';
-
-        if (dayTasks.length === 0 && (!plannerData.studyTimes?.[dateKey]) && dateKey !== getTodayStr()) {
-          continue;
-        }
-
-        const reportText = [
-          `📅 날짜: ${dateKey}`,
-          `⏱ 총 순공시간: ${dayStudyTime}`,
-          `\n[ 오늘의 학습 계획 완료 현황 ]`,
-          ...(dayTasks.length ? dayTasks.map(t => `${t.completed ? '✅' : '❌'} ${t.text}`) : ['등록된 학습 계획 없음']),
-          `\n[ 인강 진도율 현황 ]`,
-          ...(lectureProgressList.length ? lectureProgressList : ['진행 중인 인강 없음']),
-          `\n[ 회독 현황 ]`,
+        reviewSummaryList.push(`- [${b.subject}]${b.title} : ${maxCount}회독`);       });        for (const dateKey of datesToSync) {         const dayTasks = (plannerData.tasks[dateKey] \vert{}\vert{} []).map(t => ({           text: t.text,           completed: t.completed         }));         const dayStudyTime = plannerData.studyTimes?.[dateKey] \vert{}\vert{} '0H';          if (dayTasks.length === 0 && (!plannerData.studyTimes?.[dateKey]) && dateKey !== getTodayStr()) {           continue;         }          const completedCount = dayTasks.filter(t => t.completed).length;         const achievementRate = dayTasks.length ? Math.round((completedCount / dayTasks.length) * 100) : 0;          const taskLines = dayTasks.length           ? dayTasks.map(t => `${t.completed ? '✅' : '❌'} ${t.text}`)           : ['등록된 학습 계획 없음'];          // 이미지 양식과 완벽히 동일한 구조 생성         const reportText = [           `📅 날짜: ${dateKey}`,
+          `⏱ 총 순공시간: ${dayStudyTime}`,           `플랜 달성률: ${achievementRate}%`,
+          ``,
+          `[ 오늘의 학습 계획 현황 ]`,
+          ...taskLines,
+          ``,
+          `[ 인강 진도율 현황 ]`,
+          ...(lectureProgressLines.length ? lectureProgressLines : ['진행 중인 인강 없음']),
+          ``,
+          `[ 회독 현황 ]`,
           ...(reviewSummaryList.length ? reviewSummaryList : ['등록된 회독 정보 없음'])
         ].join('\n');
 
@@ -1579,7 +1561,7 @@
           date: dateKey,
           studyTime: dayStudyTime,
           tasks: dayTasks,
-          lectureProgress: lectureProgressList,
+          lectureProgress: lectureProgressLines,
           reviewSummary: reviewSummaryList,
           reportText: reportText
         };
