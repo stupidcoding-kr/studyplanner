@@ -1360,7 +1360,7 @@
     let plannerData = {
       ddays: [],
       categories: ['기본', '객관식', '심화'],
-      subjects: ['재무회계', '세법'],
+      subjects: [],
       lectures: [],
       tasks: {},
       studyTimes: {},
@@ -1638,21 +1638,48 @@
     }
 
     function toggleTaskComplete(dateStr, idx) {
-      plannerData.tasks[dateStr][idx].completed = !plannerData.tasks[dateStr][idx].completed;
-      saveData(); renderWeeklyView();
+      const task = plannerData.tasks[dateStr]?.[idx];
+      if (!task) return;
+
+      task.completed = !task.completed;
+
+      // 인강 연동 과제 체크 시 인강 진도율 자동 업데이트
+      if (task.lectureId) {
+        const lec = plannerData.lectures.find(l => l.id == task.lectureId);
+        if (lec) {
+          if (task.completed) {
+            lec.current = Math.min(lec.total, (lec.current || 0) + 1);
+          } else {
+            lec.current = Math.max(0, (lec.current || 0) - 1);
+          }
+        }
+      }
+
+      saveData(); 
+      render();
     }
 
     function deleteTask(dateStr, idx) {
+      const task = plannerData.tasks[dateStr]?.[idx];
+      if (task && task.completed && task.lectureId) {
+        const lec = plannerData.lectures.find(l => l.id == task.lectureId);
+        if (lec) {
+          lec.current = Math.max(0, (lec.current || 0) - 1);
+        }
+      }
       plannerData.tasks[dateStr].splice(idx, 1);
       saveData();
-      renderWeeklyView();
+      render();
     }
 
     function openTaskModal(dateStr, idx = null) {
       document.getElementById('taskTargetDate').value = dateStr;
       document.getElementById('taskTargetIdx').value = idx !== null ? idx : '';
       const select = document.getElementById('taskLectureSelect');
-      select.innerHTML = '<option value="">선택 안 함</option>' + (plannerData.lectures || []).map(l => `<option value="${l.id}">${escapeHtml(l.subject)} : ${escapeHtml(l.title)}</option>`).join('');
+      select.innerHTML = '<option value="">선택 안 함</option>' + (plannerData.lectures || []).map(l => {
+        const instructorStr = l.instructor ? ` (${escapeHtml(l.instructor)})` : '';
+        return `<option value="${l.id}">${escapeHtml(l.title)}${instructorStr}</option>`;
+      }).join('');
       const task = idx !== null ? plannerData.tasks[dateStr]?.[idx] : null;
       document.getElementById('taskModalTitle').innerText = idx !== null ? '학습 계획 수정' : '학습 계획 추가';
       document.getElementById('taskTextInput').value = task?.text || '';
@@ -1671,19 +1698,72 @@
       const text = document.getElementById('taskTextInput').value.trim();
       const lectureId = document.getElementById('taskLectureSelect').value;
       const rangeVal = document.getElementById('taskRangeInput').value.trim();
-      if (!text && !lectureId) return;
-
-      let finalText = text;
-      if (lectureId) {
-        const lec = plannerData.lectures.find(l => l.id == lectureId);
-        if (lec) finalText = rangeVal ? `${lec.title} (${rangeVal}강)` : lec.title;
-      }
+      if (!text && !lectureId && !rangeVal) return;
 
       if (!plannerData.tasks[dateStr]) plannerData.tasks[dateStr] = [];
-      if (idxStr !== '') plannerData.tasks[dateStr][parseInt(idxStr, 10)] = { text: finalText, completed: false, lectureId };
-      else plannerData.tasks[dateStr].push({ text: finalText, completed: false, lectureId });
 
-      saveData(); closeModal('taskModal'); renderWeeklyView();
+      const newTasks = [];
+
+      if (lectureId) {
+        const lec = plannerData.lectures.find(l => l.id == lectureId);
+        const inputForRange = rangeVal || text;
+        const rangeMatch = inputForRange ? inputForRange.match(/(\d+)\s*[-~]\s*(\d+)/) : null;
+
+        if (lec && rangeMatch) {
+          const start = parseInt(rangeMatch[1], 10);
+          const end = parseInt(rangeMatch[2], 10);
+          const min = Math.min(start, end);
+          const max = Math.max(start, end);
+
+          for (let i = min; i <= max; i++) {
+            newTasks.push({
+              text: `${lec.title} ${i}강`,
+              completed: false,
+              lectureId: lec.id
+            });
+          }
+        } else if (lec && rangeVal) {
+          const singleMatch = rangeVal.match(/^(\d+)/);
+          if (singleMatch) {
+            newTasks.push({
+              text: `${lec.title} ${singleMatch[1]}강`,
+              completed: false,
+              lectureId: lec.id
+            });
+          } else {
+            newTasks.push({
+              text: `${lec.title} (${rangeVal})`,
+              completed: false,
+              lectureId: lec.id
+            });
+          }
+        } else if (lec) {
+          newTasks.push({
+            text: text || lec.title,
+            completed: false,
+            lectureId: lec.id
+          });
+        }
+      } else {
+        newTasks.push({
+          text: text,
+          completed: false,
+          lectureId: null
+        });
+      }
+
+      if (newTasks.length > 0) {
+        if (idxStr !== '') {
+          const targetIdx = parseInt(idxStr, 10);
+          plannerData.tasks[dateStr].splice(targetIdx, 1, ...newTasks);
+        } else {
+          plannerData.tasks[dateStr].push(...newTasks);
+        }
+      }
+
+      saveData();
+      closeModal('taskModal');
+      render();
     }
 
     /* Lectures */
