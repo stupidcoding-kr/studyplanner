@@ -46,17 +46,17 @@
 
     body {
       background-color: var(--bg-color);
-      padding: 16px;
+      padding: 6px;
       color: var(--text-color);
     }
 
     .planner-container {
-      max-width: 1400px;
+      max-width: 100%;
       margin: 0 auto;
       background: #ffffff;
-      border-radius: 14px;
-      padding: 24px;
-      box-shadow: 0 4px 16px rgba(107, 154, 196, 0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      box-shadow: 0 2px 10px rgba(107, 154, 196, 0.08);
       border: 1px solid var(--border-color);
       position: relative;
     }
@@ -65,11 +65,11 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 8px;
     }
 
     .title {
-      font-size: 1.3rem;
+      font-size: 1.05rem;
       font-weight: 700;
       color: var(--text-color);
     }
@@ -78,14 +78,14 @@
       background: transparent;
       border: 1px solid var(--border-color);
       color: var(--sub-text);
-      border-radius: 6px;
-      padding: 4px 6px;
+      border-radius: 4px;
+      padding: 2px 4px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
-      font-size: 0.8rem;
+      font-size: 0.7rem;
     }
 
     .gear-btn:hover, .gear-btn.active {
@@ -97,18 +97,18 @@
     .view-toggle {
       display: flex;
       background: var(--accent-light);
-      padding: 4px;
-      border-radius: 8px;
+      padding: 2px;
+      border-radius: 6px;
     }
 
     .view-btn {
       border: none;
       background: transparent;
-      padding: 6px 16px;
-      font-size: 0.82rem;
+      padding: 3px 10px;
+      font-size: 0.75rem;
       font-weight: 600;
       color: var(--sub-text);
-      border-radius: 6px;
+      border-radius: 4px;
       cursor: pointer;
       transition: all 0.2s ease;
     }
@@ -116,24 +116,24 @@
     .view-btn.active {
       background: #ffffff;
       color: var(--accent-color);
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
     .section-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
-      margin-top: 8px;
+      margin-bottom: 6px;
+      margin-top: 4px;
     }
 
     .section-title {
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       font-weight: 700;
       color: #476582;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .icon-add-btn {
@@ -143,10 +143,10 @@
       background: var(--accent-light);
       border: 1px solid var(--accent-border);
       color: var(--accent-color);
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       font-weight: bold;
-      width: 22px;
-      height: 22px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       cursor: pointer;
       transition: all 0.2s;
@@ -161,10 +161,10 @@
       background: var(--accent-light);
       border: 1px solid var(--accent-border);
       color: var(--accent-color);
-      font-size: 0.72rem;
+      font-size: 0.65rem;
       font-weight: bold;
-      padding: 2px 8px;
-      border-radius: 4px;
+      padding: 1px 5px;
+      border-radius: 3px;
       cursor: pointer;
     }
 
@@ -177,10 +177,10 @@
       background: transparent;
       border: none;
       color: var(--accent-color);
-      font-size: 1.05rem;
+      font-size: 0.9rem;
       font-weight: 800;
       cursor: pointer;
-      padding: 0 4px;
+      padding: 0 2px;
       line-height: 1;
       display: inline-flex;
       align-items: center;
@@ -194,47 +194,47 @@
     }
 
     .dday-section, .weekly-section, .lecture-section, .review-section {
-      margin-bottom: 24px;
+      margin-bottom: 10px;
     }
 
     .dday-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 6px;
       align-items: center;
     }
 
     .dday-card {
       background: linear-gradient(135deg, #ebf3f9 0%, #dce9f5 100%);
       border: 1px solid var(--accent-border);
-      border-radius: 10px;
-      padding: 10px 14px;
+      border-radius: 6px;
+      padding: 4px 8px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      min-width: 200px;
+      min-width: 140px;
       position: relative;
       user-select: none;
       cursor: pointer;
     }
 
     .dday-title {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: #3b6998;
     }
 
     .dday-target-date {
-      font-size: 0.72rem;
+      font-size: 0.65rem;
       color: var(--sub-text);
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .dday-badge {
-      font-size: 1.15rem;
+      font-size: 0.9rem;
       font-weight: 800;
       color: var(--accent-color);
-      margin-left: 12px;
+      margin-left: 8px;
     }
 
     .dday-del-btn, .task-delete, .subject-delete-btn, .lecture-delete-btn {
@@ -243,19 +243,19 @@
       color: #ef4444;
       cursor: pointer;
       font-weight: bold;
-      font-size: 0.8rem;
+      font-size: 0.75rem;
     }
 
     .dday-del-btn {
       position: absolute;
-      top: -6px;
-      right: -6px;
+      top: -4px;
+      right: -4px;
       background: #ef4444;
       color: white;
       border-radius: 50%;
-      width: 18px;
-      height: 18px;
-      font-size: 10px;
+      width: 14px;
+      height: 14px;
+      font-size: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -264,34 +264,34 @@
     .weekly-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 10px;
+      gap: 5px;
     }
 
     .day-card {
       background: #fbfdfe;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 12px 10px;
+      border-radius: 6px;
+      padding: 6px 5px;
       display: flex;
       flex-direction: column;
-      min-height: 290px;
+      min-height: 180px;
       position: relative;
     }
 
     .day-card.today {
-      border-top: 4px solid var(--accent-color);
+      border-top: 3px solid var(--accent-color);
       background: #f4f8fc;
     }
 
     .day-card-header {
       text-align: center;
-      padding-bottom: 6px;
+      padding-bottom: 3px;
       border-bottom: 1px solid var(--border-color);
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .day-name {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: var(--sub-text);
       display: block;
@@ -302,31 +302,31 @@
     }
 
     .day-date {
-      font-size: 0.7rem;
+      font-size: 0.62rem;
       color: var(--sub-text);
     }
 
     .study-time-box {
-      margin-bottom: 6px;
+      margin-bottom: 3px;
     }
 
     .section-sub-title {
-      font-size: 0.7rem;
+      font-size: 0.62rem;
       font-weight: 700;
       color: var(--sub-text);
     }
 
     .study-time-val {
       font-family: 'Consolas', monospace;
-      font-size: 0.88rem;
+      font-size: 0.75rem;
       font-weight: 800;
       color: var(--accent-color);
       text-align: center;
       cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
+      padding: 2px;
+      border-radius: 3px;
       transition: all 0.2s ease;
-      min-height: 28px;
+      min-height: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -339,19 +339,19 @@
     .study-time-val.empty {
       color: #94a3b8;
       font-weight: 500;
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       font-family: 'Pretendard', sans-serif;
     }
 
     .study-time-inline-input {
       width: 100%;
       font-family: 'Consolas', monospace;
-      font-size: 0.85rem;
+      font-size: 0.72rem;
       font-weight: 800;
       text-align: center;
       border: 1px solid var(--accent-color);
-      border-radius: 4px;
-      padding: 2px 4px;
+      border-radius: 3px;
+      padding: 1px 2px;
       outline: none;
       color: var(--accent-color);
       box-shadow: 0 0 0 2px rgba(107, 154, 196, 0.2);
@@ -360,25 +360,25 @@
     .day-divider {
       height: 1px;
       background: var(--border-color);
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .day-tasks-container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      margin-bottom: 8px;
+      gap: 3px;
+      margin-bottom: 4px;
     }
 
     .task-chip {
       display: flex;
       align-items: flex-start;
-      gap: 4px;
-      font-size: 0.75rem;
+      gap: 3px;
+      font-size: 0.68rem;
       background: #ffffff;
-      padding: 6px;
-      border-radius: 6px;
+      padding: 3px 4px;
+      border-radius: 4px;
       border: 1px solid var(--border-color);
       word-break: break-all;
     }
@@ -393,14 +393,15 @@
     }
 
     .task-checkbox {
-      margin-top: 2px;
+      margin-top: 1px;
       accent-color: var(--accent-color);
       cursor: pointer;
+      transform: scale(0.85);
     }
 
     .task-text {
       flex: 1;
-      line-height: 1.3;
+      line-height: 1.2;
       cursor: pointer;
     }
 
@@ -409,11 +410,11 @@
       border: 1px dashed var(--accent-border);
       background: transparent;
       color: var(--tag-text);
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       font-weight: 600;
       cursor: pointer;
-      padding: 6px 0;
-      border-radius: 6px;
+      padding: 3px 0;
+      border-radius: 4px;
       opacity: 0;
       visibility: hidden;
       transition: all 0.2s ease;
@@ -431,19 +432,19 @@
     .subject-card-grid {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 6px;
       align-items: center;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
     }
 
     .subject-card {
       background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px 12px;
+      border-radius: 6px;
+      padding: 4px 8px;
       cursor: pointer;
       transition: all 0.2s;
-      min-width: 140px;
+      min-width: 100px;
       position: relative;
     }
 
@@ -453,9 +454,9 @@
     }
 
     .subject-card-title {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       font-weight: 700;
-      padding-right: 14px;
+      padding-right: 12px;
     }
 
     .subject-card.active .subject-card-title {
@@ -464,10 +465,10 @@
 
     .subject-card-actions {
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 4px;
+      right: 4px;
       display: flex;
-      gap: 4px;
+      gap: 3px;
       align-items: center;
     }
 
@@ -476,9 +477,9 @@
       border: 1px solid var(--accent-border);
       color: var(--accent-color);
       border-radius: 50%;
-      width: 18px;
-      height: 18px;
-      font-size: 11px;
+      width: 14px;
+      height: 14px;
+      font-size: 9px;
       font-weight: bold;
       display: flex;
       align-items: center;
@@ -499,28 +500,28 @@
 
     .lecture-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 6px;
     }
 
     .category-group-header {
       grid-column: 1 / -1;
-      font-size: 0.82rem;
+      font-size: 0.72rem;
       font-weight: 700;
       color: var(--accent-color);
-      margin-top: 6px;
+      margin-top: 3px;
       border-bottom: 1px dashed var(--accent-border);
-      padding-bottom: 4px;
+      padding-bottom: 2px;
     }
 
     .lecture-card {
       background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 12px;
+      border-radius: 6px;
+      padding: 6px 8px;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 3px;
       position: relative;
       transition: all 0.2s;
     }
@@ -533,7 +534,7 @@
 
     .lecture-card:hover {
       border-color: var(--accent-color);
-      box-shadow: 0 2px 8px rgba(107, 154, 196, 0.12);
+      box-shadow: 0 1px 6px rgba(107, 154, 196, 0.12);
     }
 
     .lecture-header {
@@ -541,33 +542,33 @@
       justify-content: space-between;
       align-items: center;
       gap: 4px;
-      padding-right: 20px;
+      padding-right: 16px;
     }
 
     .lecture-delete-btn {
       position: absolute;
-      top: 10px;
-      right: 10px;
+      top: 6px;
+      right: 6px;
     }
 
     .subject-tag {
-      font-size: 0.68rem;
+      font-size: 0.6rem;
       font-weight: 700;
-      padding: 2px 6px;
-      border-radius: 4px;
+      padding: 1px 4px;
+      border-radius: 3px;
       background: var(--tag-bg);
       color: var(--tag-text);
     }
 
     .instructor-tag {
-      font-size: 0.72rem;
+      font-size: 0.62rem;
       color: var(--sub-text);
       font-weight: 500;
       margin-left: auto;
     }
 
     .lecture-title {
-      font-size: 0.85rem;
+      font-size: 0.75rem;
       font-weight: 700;
       color: var(--text-color);
       white-space: nowrap;
@@ -578,17 +579,17 @@
 
     .progress-bar-container {
       width: 100%;
-      height: 7px;
+      height: 5px;
       background: var(--progress-bg);
-      border-radius: 4px;
+      border-radius: 3px;
       overflow: hidden;
-      margin-top: 4px;
+      margin-top: 2px;
     }
 
     .progress-bar-fill {
       height: 100%;
       background: var(--progress-fill);
-      border-radius: 4px;
+      border-radius: 3px;
       transition: width 0.3s ease;
     }
 
@@ -596,44 +597,44 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 2px;
+      margin-top: 1px;
     }
 
     .lecture-count {
-      font-size: 0.72rem;
+      font-size: 0.62rem;
       color: var(--sub-text);
       font-weight: 600;
     }
 
     .lecture-percent {
-      font-size: 0.72rem;
+      font-size: 0.62rem;
       font-weight: 700;
       color: var(--accent-color);
     }
 
     .review-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 8px;
     }
 
     .review-card {
       background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 14px;
+      border-radius: 8px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+      gap: 6px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
     }
 
     .review-subject-header {
-      font-size: 0.92rem;
+      font-size: 0.8rem;
       font-weight: 800;
       color: var(--accent-color);
       border-bottom: 2px solid var(--accent-light);
-      padding-bottom: 6px;
+      padding-bottom: 3px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -642,13 +643,13 @@
     .review-book-details {
       background: #f8fafc;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      margin-bottom: 8px;
+      border-radius: 6px;
+      margin-bottom: 4px;
       overflow: hidden;
     }
 
     .review-book-summary, .chapter-summary, .section-summary {
-      padding: 8px 10px;
+      padding: 4px 6px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -658,39 +659,39 @@
     .review-book-summary {
       background: #f1f5f9;
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.75rem;
     }
 
     .chapter-details {
-      margin: 6px 10px;
+      margin: 4px 6px;
       border: 1px solid #e2e8f0;
-      border-radius: 6px;
+      border-radius: 4px;
       background: #ffffff;
     }
 
     .chapter-summary {
       background: #f8fafc;
       font-weight: 700;
-      font-size: 0.8rem;
+      font-size: 0.7rem;
     }
 
     .section-details {
-      margin: 4px 8px 4px 16px;
+      margin: 2px 4px 2px 10px;
       border: 1px dashed #cbd5e1;
-      border-radius: 4px;
+      border-radius: 3px;
       background: #fdfdfe;
     }
 
     .section-summary {
       font-weight: 600;
-      font-size: 0.75rem;
+      font-size: 0.68rem;
     }
 
     .chapter-list-container, .section-list-container {
-      padding: 6px 8px;
+      padding: 3px 4px;
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
     }
 
     .chapter-title-text, .section-title-text, .book-title-text {
@@ -706,31 +707,31 @@
       font-family: inherit;
       color: var(--text-color);
       border: 1px solid var(--accent-color);
-      border-radius: 4px;
-      padding: 1px 4px;
+      border-radius: 3px;
+      padding: 1px 3px;
       outline: none;
       background: #ffffff;
-      max-width: 160px;
+      max-width: 120px;
       box-shadow: 0 0 0 2px rgba(107, 154, 196, 0.2);
     }
 
     .chapter-count-badge {
       background: var(--tag-bg);
       color: var(--tag-text);
-      font-size: 0.72rem;
+      font-size: 0.62rem;
       font-weight: 800;
-      padding: 2px 8px;
-      border-radius: 10px;
+      padding: 1px 5px;
+      border-radius: 8px;
     }
 
     .review-cnt-btn {
       background: #ffffff;
       border: 1px solid var(--accent-border);
       color: var(--accent-color);
-      border-radius: 4px;
-      width: 20px;
-      height: 20px;
-      font-size: 0.75rem;
+      border-radius: 3px;
+      width: 16px;
+      height: 16px;
+      font-size: 0.65rem;
       font-weight: bold;
       cursor: pointer;
       display: inline-flex;
@@ -745,18 +746,18 @@
     }
 
     .book-search-result {
-      max-height: 220px;
+      max-height: 160px;
       overflow-y: auto;
       border: 1px solid var(--border-color);
-      border-radius: 6px;
-      margin-top: 8px;
+      border-radius: 4px;
+      margin-top: 6px;
     }
 
     .book-search-item {
-      padding: 8px 10px;
+      padding: 5px 8px;
       border-bottom: 1px solid #f1f5f9;
       cursor: pointer;
-      font-size: 0.78rem;
+      font-size: 0.7rem;
     }
 
     .book-search-item:hover {
@@ -769,14 +770,14 @@
     }
 
     .book-search-author {
-      font-size: 0.7rem;
+      font-size: 0.62rem;
       color: var(--sub-text);
     }
 
     .yearly-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
+      gap: 8px;
     }
 
     @media (max-width: 1200px) {
@@ -795,13 +796,13 @@
     .month-card {
       background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 14px;
+      border-radius: 8px;
+      padding: 8px;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      min-height: 280px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+      gap: 6px;
+      min-height: 180px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
     }
 
     .month-header {
@@ -809,11 +810,11 @@
       justify-content: space-between;
       align-items: center;
       border-bottom: 1px solid var(--border-color);
-      padding-bottom: 8px;
+      padding-bottom: 4px;
     }
 
     .month-title {
-      font-size: 0.95rem;
+      font-size: 0.8rem;
       font-weight: 700;
       color: var(--accent-color);
     }
@@ -822,10 +823,10 @@
       background: transparent;
       border: none;
       color: var(--sky-blue);
-      font-size: 1.05rem;
+      font-size: 0.95rem;
       font-weight: 800;
       cursor: pointer;
-      padding: 0 4px;
+      padding: 0 2px;
       opacity: 0;
       visibility: hidden;
       transition: all 0.2s ease;
@@ -845,9 +846,9 @@
     .goal-box, .schedule-box {
       background: #f8fafc;
       border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px;
-      min-height: 95px;
+      border-radius: 6px;
+      padding: 5px;
+      min-height: 60px;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -863,12 +864,12 @@
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      gap: 4px;
-      margin-bottom: 6px;
+      gap: 3px;
+      margin-bottom: 4px;
     }
 
     .goal-box-title, .schedule-title {
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       font-weight: 700;
       color: var(--sub-text);
     }
@@ -876,9 +877,9 @@
     .goal-list, .yearly-list {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 2px;
       flex: 1;
-      max-height: 110px;
+      max-height: 70px;
       overflow-y: auto;
     }
 
@@ -888,9 +889,9 @@
       justify-content: space-between;
       background: #ffffff;
       border: 1px solid var(--border-color);
-      border-radius: 4px;
-      padding: 4px 6px;
-      font-size: 0.75rem;
+      border-radius: 3px;
+      padding: 2px 4px;
+      font-size: 0.68rem;
       cursor: pointer;
       transition: all 0.15s ease;
       word-break: break-all;
@@ -903,7 +904,7 @@
     .bold-date {
       font-weight: 800;
       color: var(--accent-color);
-      margin-right: 6px;
+      margin-right: 4px;
     }
 
     .yearly-text {
@@ -912,11 +913,11 @@
 
     .calendar-modal {
       background: #ffffff;
-      border-radius: 14px;
+      border-radius: 10px;
       width: 90%;
-      max-width: 340px;
-      padding: 18px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      max-width: 280px;
+      padding: 12px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
       border: 1px solid var(--accent-border);
     }
 
@@ -924,26 +925,26 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .calendar-grid {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
+      gap: 2px;
       text-align: center;
-      font-size: 0.78rem;
+      font-size: 0.7rem;
     }
 
     .calendar-day-head {
       font-weight: 700;
       color: var(--sub-text);
-      padding-bottom: 6px;
+      padding-bottom: 4px;
     }
 
     .calendar-day-cell {
-      padding: 8px 0;
-      border-radius: 6px;
+      padding: 5px 0;
+      border-radius: 4px;
       cursor: pointer;
       user-select: none;
       transition: all 0.15s;
@@ -970,16 +971,16 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 14px;
-      padding-top: 10px;
+      margin-top: 10px;
+      padding-top: 6px;
       border-top: 1px solid var(--border-color);
     }
 
     .period-toggle-btn {
-      font-size: 0.72rem;
+      font-size: 0.65rem;
       font-weight: 600;
-      padding: 4px 10px;
-      border-radius: 12px;
+      padding: 2px 8px;
+      border-radius: 10px;
       border: 1px solid var(--border-color);
       background: #f1f5f9;
       color: var(--text-color);
@@ -1011,39 +1012,39 @@
 
     .modal {
       background: #ffffff;
-      border-radius: 12px;
+      border-radius: 10px;
       width: 90%;
-      max-width: 400px;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      max-width: 320px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
       border: 1px solid var(--accent-border);
     }
 
     .modal-title {
-      font-size: 0.95rem;
+      font-size: 0.85rem;
       font-weight: 700;
       color: var(--text-color);
-      margin-bottom: 14px;
+      margin-bottom: 10px;
     }
 
     .form-group {
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
 
     .form-label {
       display: block;
-      font-size: 0.75rem;
+      font-size: 0.68rem;
       font-weight: 600;
       color: var(--sub-text);
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
 
     .form-input, .form-select {
       width: 100%;
-      padding: 8px 10px;
+      padding: 5px 8px;
       border: 1px solid var(--border-color);
-      border-radius: 6px;
-      font-size: 0.82rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
       outline: none;
       color: var(--text-color);
     }
@@ -1051,17 +1052,17 @@
     .tag-container {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 4px;
       align-items: center;
     }
 
     .tag-pill {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 14px;
-      font-size: 0.75rem;
+      gap: 3px;
+      padding: 3px 8px;
+      border-radius: 10px;
+      font-size: 0.68rem;
       background: #f1f5f9;
       color: var(--text-color);
       border: 1px solid var(--border-color);
@@ -1078,14 +1079,14 @@
     .modal-footer {
       display: flex;
       justify-content: flex-end;
-      gap: 6px;
-      margin-top: 18px;
+      gap: 4px;
+      margin-top: 12px;
     }
 
     .btn {
-      padding: 8px 16px;
-      border-radius: 6px;
-      font-size: 0.8rem;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
       border: none;
@@ -1203,7 +1204,7 @@
       <div class="modal">
         <div class="modal-title">도서 검색</div>
         <input type="hidden" id="kakaoTargetSubject" />
-        <div class="form-group" style="display: flex; gap: 6px;">
+        <div class="form-group" style="display: flex; gap: 4px;">
           <input type="text" class="form-input" id="kakaoSearchQuery" placeholder="도서 제목 입력 (예: 중급회계 상)" onkeydown="if(event.key==='Enter') searchKakaoBook()" />
           <button class="btn btn-primary" style="width: auto;" onclick="searchKakaoBook()">검색</button>
         </div>
@@ -1320,7 +1321,7 @@
         </div>
         <div class="calendar-grid" id="calGrid"></div>
         <div class="calendar-footer">
-          <div style="font-size: 0.7rem; color: var(--sub-text);">날짜 선택</div>
+          <div style="font-size: 0.65rem; color: var(--sub-text);">날짜 선택</div>
           <button type="button" id="periodToggleBtn" class="period-toggle-btn" onclick="togglePeriodMode()">기간 설정</button>
         </div>
       </div>
@@ -1493,7 +1494,6 @@
             const notionTasks = result.plannerData.tasks || {};
             const notionStudyTimes = result.plannerData.studyTimes || {};
 
-            // 노션 DB에서 페이지 삭제 발생 시 위젯 데이터도 완전 초기화되도록 동기화 처리
             plannerData.tasks = notionTasks;
             plannerData.studyTimes = notionStudyTimes;
 
@@ -1534,7 +1534,6 @@
         ...Object.keys(plannerData.studyTimes || {})
       ]));
 
-      // 회독 현황 리스트 생성 (책 아이콘 📖 반영)
       const reviewSummaryList = [];
       (plannerData.reviews || []).forEach(b => {
         let maxCount = 0;
@@ -1562,7 +1561,6 @@
           ? reviewSummaryList.join('\n')
           : '등록된 회독 정보 없음';
 
-        // 캡처 이미지 삭제 요건 반영: 제목 헤더/콜아웃 삭제 및 📖 회독 현황 구성
         const reportText = [
           `📅 날짜: ${dateKey}`,
           `⏱ 총 순공시간: ${dayStudyTime}`,
@@ -2069,7 +2067,7 @@
         const booksHtml = books.map(b => `
           <details class="review-book-details" open>
             <summary class="review-book-summary">
-              <div style="display:flex; align-items:center; gap:6px;">
+              <div style="display:flex; align-items:center; gap:4px;">
                 <span class="book-title-text" id="bookTitle_${b.id}" ondblclick="event.stopPropagation(); editBookTitle(${b.id})" title="더블클릭하여 책 제목 수정">${escapeHtml(b.title)}</span>
                 <button class="simple-text-btn" onclick="event.stopPropagation(); openAddChapterModal(${b.id})" title="장 추가">+</button>
               </div>
@@ -2081,11 +2079,11 @@
               ${(b.chapters || []).map(ch => `
                 <details class="chapter-details" open>
                   <summary class="chapter-summary">
-                    <div style="display:flex; align-items:center; gap:6px;">
+                    <div style="display:flex; align-items:center; gap:4px;">
                       <span class="chapter-title-text" id="chapterTitle_${b.id}_${ch.id}" ondblclick="event.stopPropagation(); editChapterTitle(${b.id}, ${ch.id})" title="더블클릭하여 이름 수정">${escapeHtml(ch.title)}</span>
                       <button class="simple-text-btn" onclick="event.stopPropagation(); openAddSectionModal(${b.id},${ch.id})" title="절 추가">+</button>
                     </div>
-                    <div style="display:flex; gap:4px; align-items:center;">
+                    <div style="display:flex; gap:3px; align-items:center;">
                       <button class="review-cnt-btn" onclick="event.stopPropagation(); updateChapterCount(${b.id},${ch.id}, -1)">-</button>
                       <span class="chapter-count-badge">${ch.count || 0}회독</span>
                       <button class="review-cnt-btn" onclick="event.stopPropagation(); updateChapterCount(${b.id},${ch.id}, 1)">+</button>
@@ -2097,7 +2095,7 @@
                       <details class="section-details" open>
                         <summary class="section-summary">
                           <span class="section-title-text" id="sectionTitle_${b.id}_${ch.id}_${sec.id}" ondblclick="event.stopPropagation(); editSectionTitle(${b.id}, ${ch.id}, ${sec.id})" title="더블클릭하여 이름 수정">${escapeHtml(sec.title)}</span>
-                          <div style="display:flex; gap:4px; align-items:center;">
+                          <div style="display:flex; gap:3px; align-items:center;">
                             <button class="review-cnt-btn" onclick="event.stopPropagation(); updateSectionCount(${b.id}, ${ch.id}, ${sec.id}, -1)">-</button>
                             <span class="chapter-count-badge">${sec.count || 0}회독</span>
                             <button class="review-cnt-btn" onclick="event.stopPropagation(); updateSectionCount(${b.id}, ${ch.id}, ${sec.id}, 1)">+</button>
